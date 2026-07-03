@@ -43,3 +43,7 @@ yarn-error.*
 # AI tool configs (claude-flow, agentdb)
 .claude/
 .claude-flow/
+.swarm/
+*.db
+*.db-shm
+*.db-wal
