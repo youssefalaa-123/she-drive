@@ -245,6 +245,23 @@ const strings = {
     startTrip: 'Start Trip',
     completeTrip: 'Complete Trip',
 
+    // AI Features
+    leaveComment: 'Leave a comment (optional)',
+    whatPassengersSay: 'What passengers say',
+    gotItThanks: 'Got it, thanks!',
+    passengerLabel: 'Passenger',
+    aiReportTitle: '✨ AI Performance Report',
+    aiReportSub: 'Get a personalised summary powered by Claude',
+    thisWeek: '📅 This Week',
+    thisMonth: '🗓 This Month',
+    weeklyReport: '📅 Weekly Performance Report',
+    monthlyReport: '🗓 Monthly Performance Report',
+    claudeAnalysing: 'Claude is analysing your trips…',
+    reportError: 'Could not generate report. Please try again later.',
+    earnedLabel: 'Earned',
+    avgRatingLabel: 'Avg Rating',
+    closeBtn: 'Close',
+
     // Badge
     newBadgeEarned: 'New Badge Earned!',
     badgeBodyPre: "You've completed ",
@@ -564,6 +581,23 @@ const strings = {
     iArrivedAtPickup: 'وصلت لنقطة الانطلاق',
     startTrip: 'بدء الرحلة',
     completeTrip: 'إنهاء الرحلة',
+
+    // AI Features
+    leaveComment: 'اكتبي تعليقاً (اختياري)',
+    whatPassengersSay: 'ماذا قالت الراكبات',
+    gotItThanks: 'فهمت، شكراً!',
+    passengerLabel: 'راكبة',
+    aiReportTitle: '✨ تقرير الأداء بالذكاء الاصطناعي',
+    aiReportSub: 'احصلي على ملخص شخصي مدعوم بـ Claude',
+    thisWeek: '📅 هذا الأسبوع',
+    thisMonth: '🗓 هذا الشهر',
+    weeklyReport: '📅 تقرير الأداء الأسبوعي',
+    monthlyReport: '🗓 تقرير الأداء الشهري',
+    claudeAnalysing: 'كلود يحلّل رحلاتك…',
+    reportError: 'تعذّر إنشاء التقرير. يرجى المحاولة لاحقاً.',
+    earnedLabel: 'مكتسب',
+    avgRatingLabel: 'متوسط التقييم',
+    closeBtn: 'إغلاق',
 
     // Badge
     newBadgeEarned: 'حصلتِ على شارة جديدة!',

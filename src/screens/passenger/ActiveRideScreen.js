@@ -125,7 +125,7 @@ export default function ActiveRideScreen({ navigation, route }) {
             <View style={styles.profileHeader}>
               <View style={styles.profileAvatar}><Text style={{ fontSize: 36 }}>👩</Text></View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.profileName}>{ride?.driverName || 'Your Driver'}</Text>
+                <Text style={styles.profileName}>{ride?.driverName || t('yourDriver')}</Text>
                 <Text style={styles.profileCar}>{ride?.driverCar || ''} {ride?.driverPlate ? `· ${ride.driverPlate}` : ''}</Text>
                 <View style={styles.profileStats}>
                   <Text style={styles.statChip}>⭐ {ride?.driverRating?.toFixed(1) ?? '—'}</Text>
@@ -135,20 +135,20 @@ export default function ActiveRideScreen({ navigation, route }) {
             </View>
             {driverReviews && driverReviews.length > 0 && (
               <View style={{ marginTop: 16 }}>
-                <Text style={styles.reviewsTitle}>What passengers say</Text>
+                <Text style={styles.reviewsTitle}>{t('whatPassengersSay')}</Text>
                 <ScrollView style={{ maxHeight: 180 }}>
                   {driverReviews.map((r, i) => (
                     <View key={i} style={styles.reviewItem}>
                       <Text style={styles.reviewStars}>{'⭐'.repeat(r.rating)}</Text>
                       <Text style={styles.reviewText}>{r.comment}</Text>
-                      <Text style={styles.reviewAuthor}>— {r.passenger_name || 'Passenger'}</Text>
+                      <Text style={styles.reviewAuthor}>— {r.passenger_name || t('passengerLabel')}</Text>
                     </View>
                   ))}
                 </ScrollView>
               </View>
             )}
             <TouchableOpacity style={styles.profileClose} onPress={() => setShowDriverProfile(false)}>
-              <Text style={styles.profileCloseText}>Got it, thanks!</Text>
+              <Text style={styles.profileCloseText}>{t('gotItThanks')}</Text>
             </TouchableOpacity>
           </View>
         </View>

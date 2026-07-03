@@ -267,14 +267,14 @@ export default function DriverHomeScreen({ navigation }) {
         </View>
 
         <View style={styles.aiSection}>
-          <Text style={styles.aiTitle}>✨ AI Performance Report</Text>
-          <Text style={styles.aiSub}>Get a personalised summary powered by Claude</Text>
+          <Text style={styles.aiTitle}>{t('aiReportTitle')}</Text>
+          <Text style={styles.aiSub}>{t('aiReportSub')}</Text>
           <View style={styles.aiRow}>
             <TouchableOpacity style={styles.aiBtn} onPress={() => handleGetSummary('weekly')}>
-              <Text style={styles.aiBtnText}>📅 This Week</Text>
+              <Text style={styles.aiBtnText}>{t('thisWeek')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.aiBtn} onPress={() => handleGetSummary('monthly')}>
-              <Text style={styles.aiBtnText}>🗓 This Month</Text>
+              <Text style={styles.aiBtnText}>{t('thisMonth')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -285,26 +285,26 @@ export default function DriverHomeScreen({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.summarySheet}>
             <Text style={styles.summaryTitle}>
-              {summaryPeriod === 'weekly' ? '📅 Weekly' : '🗓 Monthly'} Performance Report
+              {summaryPeriod === 'weekly' ? t('weeklyReport') : t('monthlyReport')}
             </Text>
             {summaryLoading && (
               <View style={{ alignItems: 'center', padding: 32 }}>
                 <Text style={{ fontSize: 24, marginBottom: 12 }}>🤖</Text>
-                <Text style={{ color: colors.gray, fontSize: 14 }}>Claude is analysing your trips…</Text>
+                <Text style={{ color: colors.gray, fontSize: 14 }}>{t('claudeAnalysing')}</Text>
               </View>
             )}
             {!summaryLoading && summaryData?.error && (
               <Text style={{ color: colors.error, textAlign: 'center', padding: 20 }}>
-                Could not generate report. Please try again later.
+                {t('reportError')}
               </Text>
             )}
             {!summaryLoading && summaryData && !summaryData.error && (
               <ScrollView style={{ maxHeight: 320 }}>
                 {summaryData.stats && (
                   <View style={styles.summaryStatsRow}>
-                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.completed_rides}</Text><Text style={styles.summaryStatLabel}>Trips</Text></View>
-                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.total_earnings} EGP</Text><Text style={styles.summaryStatLabel}>Earned</Text></View>
-                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.avg_rating ?? '—'}</Text><Text style={styles.summaryStatLabel}>Avg Rating</Text></View>
+                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.completed_rides}</Text><Text style={styles.summaryStatLabel}>{t('tripsLabel')}</Text></View>
+                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.total_earnings} {t('egp')}</Text><Text style={styles.summaryStatLabel}>{t('earnedLabel')}</Text></View>
+                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.avg_rating ?? '—'}</Text><Text style={styles.summaryStatLabel}>{t('avgRatingLabel')}</Text></View>
                   </View>
                 )}
                 <View style={styles.summaryTextBox}>
@@ -313,7 +313,7 @@ export default function DriverHomeScreen({ navigation }) {
               </ScrollView>
             )}
             <TouchableOpacity style={styles.summaryClose} onPress={() => setSummaryVisible(false)}>
-              <Text style={styles.summaryCloseText}>Close</Text>
+              <Text style={styles.summaryCloseText}>{t('closeBtn')}</Text>
             </TouchableOpacity>
           </View>
         </View>
