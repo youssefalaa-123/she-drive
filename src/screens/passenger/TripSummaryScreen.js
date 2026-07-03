@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { doc, getDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { splitFare } from '../../utils/pricing';
 import { useTheme } from '../../context/SettingsContext';
@@ -79,6 +80,25 @@ export default function TripSummaryScreen({ navigation, route }) {
       const oldBadges = Math.floor((userProfile?.totalTrips || 0) / 10);
       await updateDoc(doc(db, 'users', user.uid), { totalTrips: increment(1), badges: newBadges });
       await updateDoc(doc(db, 'users', ride.driverId), { totalTrips: increment(1) });
+
+      supabase.from('rides').upsert({
+        id: rideId,
+        passenger_id: user.uid,
+        driver_id: ride.driverId,
+        from_address: ride.from,
+        to_address: ride.to,
+        distance_km: ride.distanceKm,
+        duration_mins: ride.durationMins,
+        estimated_fare: ride.estimatedFare,
+        final_fare: fare,
+        base_fare: ride.baseFare,
+        card_fee: ride.cardFee ?? 0,
+        payment_method: ride.paymentMethod,
+        status: 'completed',
+        is_first_ride: ride.isFirstRide ?? false,
+        driver_earnings: driverAmount,
+        cancellation_fee: 0,
+      }, { onConflict: 'id' }).then(() => {});
 
       if (newBadges > oldBadges) {
         setNewTripCount(newTotal);

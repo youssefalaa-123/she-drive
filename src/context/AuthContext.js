@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
@@ -26,9 +27,26 @@ export function AuthProvider({ children }) {
           doc(db, 'users', firebaseUser.uid),
           (snap) => {
             if (snap.exists()) {
-              setUserProfile({ uid: firebaseUser.uid, ...snap.data() });
+              const profile = { uid: firebaseUser.uid, ...snap.data() };
+              setUserProfile(profile);
               setLoading(false);
               if (profileTimeout) clearTimeout(profileTimeout);
+              // Sync to Supabase (fire-and-forget)
+              supabase.from('profiles').upsert({
+                id: firebaseUser.uid,
+                name: profile.name,
+                email: profile.email,
+                phone: profile.phone,
+                role: profile.role,
+                wallet: profile.wallet ?? 0,
+                total_trips: profile.totalTrips ?? 0,
+                rating: profile.rating ?? 0,
+                rating_count: profile.ratingCount ?? 0,
+                approved: profile.approved ?? false,
+                car_model: profile.carModel,
+                car_color: profile.carColor,
+                plate_number: profile.plateNumber,
+              }, { onConflict: 'id' }).then(() => {});
             }
             // If doc doesn't exist yet (race with setDoc during registration),
             // stay in loading state until the snapshot fires again with data.

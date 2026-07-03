@@ -9,6 +9,7 @@ import {
   serverTimestamp, doc, updateDoc, arrayUnion,
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { calculateFare, applyFirstRideDiscount, getTimePeriodLabel } from '../../utils/pricing';
 import { getDrivingRoute } from '../../utils/routing';
@@ -162,7 +163,7 @@ export default function HomeScreen({ navigation }) {
       return;
     }
     try {
-      await addDoc(collection(db, 'rides'), {
+      const rideRef = await addDoc(collection(db, 'rides'), {
         passengerId: user.uid, passengerName: userProfile.name,
         from: pickup.address, to: destination.address,
         fromLat: pickup.lat, fromLon: pickup.lng,
@@ -174,6 +175,20 @@ export default function HomeScreen({ navigation }) {
         remainingAmount: paymentMethod.startsWith('wallet+') ? remainingAmount : 0,
         isFirstRide, status: 'searching', createdAt: serverTimestamp(),
       });
+      supabase.from('rides').insert({
+        id: rideRef.id,
+        passenger_id: user.uid,
+        from_address: pickup.address,
+        to_address: destination.address,
+        distance_km: routeInfo.distanceKm,
+        duration_mins: routeInfo.durationMins,
+        estimated_fare: finalFare,
+        base_fare: displayFare,
+        card_fee: cardFee,
+        payment_method: paymentMethod,
+        status: 'searching',
+        is_first_ride: isFirstRide,
+      }).then(() => {});
     } catch (err) { Alert.alert('Error', err.message); }
   };
 

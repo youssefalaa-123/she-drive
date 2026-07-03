@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../context/SettingsContext';
 import { useAuth } from '../../context/AuthContext';
 import LeafletMap from '../../components/LeafletMap';
@@ -82,6 +83,12 @@ export default function ActiveRideScreen({ navigation, route }) {
                   wallet: increment(CANCEL_FEE),
                 })] : []),
               ]);
+              supabase.from('rides').upsert({
+                id: rideId,
+                status: 'cancelled',
+                cancelled_by: 'passenger',
+                cancellation_fee: CANCEL_FEE,
+              }, { onConflict: 'id' }).then(() => {});
             } catch (_) {}
             navigation.navigate('PassengerTabs');
           },
