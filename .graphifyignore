@@ -1,0 +1,10 @@
+assets/
+*.md
+*.jpg
+*.png
+*.svg
+*.gif
+*.pdf
+*.html
+LICENSE
+.expo/

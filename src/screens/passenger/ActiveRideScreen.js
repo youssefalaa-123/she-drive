@@ -1,0 +1,207 @@
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import {
+  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
+  ActivityIndicator, Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+import { useTheme } from '../../context/SettingsContext';
+import { useAuth } from '../../context/AuthContext';
+import LeafletMap from '../../components/LeafletMap';
+import AnimatedPressable from '../../components/AnimatedPressable';
+
+const STATUS_STEPS = ['accepted', 'arrived', 'in_progress', 'completed'];
+
+export default function ActiveRideScreen({ navigation, route }) {
+  const { rideId } = route.params;
+  const { colors, shadow, t } = useTheme();
+  const { user } = useAuth();
+  const styles = useMemo(() => makeStyles(colors, shadow), [colors, shadow]);
+
+  const [ride, setRide] = useState(null);
+  const [routeInfo, setRouteInfo] = useState(null);
+  const mapRef = useRef(null);
+  const lastDriverPos = useRef(null);
+
+  useEffect(() => {
+    return onSnapshot(doc(db, 'rides', rideId), (snap) => {
+      if (!snap.exists()) return;
+      const data = { id: snap.id, ...snap.data() };
+      setRide(data);
+      if (data.status === 'completed') navigation.replace('TripSummary', { rideId });
+      if (data.status === 'cancelled') {
+        Alert.alert(t('rideCancelled'), t('driverCancelledTrip'));
+        navigation.navigate('PassengerTabs');
+      }
+    });
+  }, [rideId]);
+
+  useEffect(() => {
+    if (!ride?.fromLat || !ride?.fromLon) return;
+    mapRef.current?.setMarker('pickup', ride.fromLat, ride.fromLon, 'pickup', 'Your Pickup');
+    mapRef.current?.setView(ride.fromLat, ride.fromLon, 14);
+  }, [ride?.fromLat, ride?.fromLon]);
+
+  useEffect(() => {
+    if (!ride?.driverLat || !ride?.driverLng || !ride?.fromLat) return;
+    const dLat = ride.driverLat;
+    const dLng = ride.driverLng;
+    const prev = lastDriverPos.current;
+    if (prev && Math.abs(prev.lat - dLat) < 0.0001 && Math.abs(prev.lng - dLng) < 0.0001) return;
+    lastDriverPos.current = { lat: dLat, lng: dLng };
+    mapRef.current?.setMarker('driver', dLat, dLng, 'driver', ride.driverName || 'Your Driver');
+    const targetLat = ride.status === 'in_progress' ? (ride.toLat ?? ride.fromLat) : ride.fromLat;
+    const targetLon = ride.status === 'in_progress' ? (ride.toLon ?? ride.fromLon) : ride.fromLon;
+    mapRef.current?.showRoute(dLat, dLng, targetLat, targetLon, (info) => setRouteInfo(info));
+    mapRef.current?.fit();
+  }, [ride?.driverLat, ride?.driverLng, ride?.status]);
+
+  const CANCEL_FEE = 10;
+
+  const handleCancel = async () => {
+    Alert.alert(
+      t('cancelRide'),
+      t('cancelRideFeeMsg').replace('%d', CANCEL_FEE),
+      [
+        { text: t('no'), style: 'cancel' },
+        {
+          text: t('yesCancelRide'), style: 'destructive',
+          onPress: async () => {
+            try {
+              await Promise.all([
+                updateDoc(doc(db, 'rides', rideId), {
+                  status: 'cancelled',
+                  cancellationFee: CANCEL_FEE,
+                  cancelledBy: 'passenger',
+                }),
+                updateDoc(doc(db, 'users', user.uid), {
+                  wallet: increment(-CANCEL_FEE),
+                }),
+                ...(ride.driverId ? [updateDoc(doc(db, 'users', ride.driverId), {
+                  wallet: increment(CANCEL_FEE),
+                })] : []),
+              ]);
+            } catch (_) {}
+            navigation.navigate('PassengerTabs');
+          },
+        },
+      ]
+    );
+  };
+
+  if (!ride) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  const stepIdx = STATUS_STEPS.indexOf(ride.status);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.mapWrap}>
+        <LeafletMap
+          ref={mapRef}
+          center={{ lat: ride.fromLat ?? 30.0444, lng: ride.fromLon ?? 31.2357 }}
+          zoom={14}
+          height={260}
+        />
+        {routeInfo && (
+          <View style={styles.etaOverlay}>
+            <Text style={styles.etaText}>
+              🚗 {routeInfo.distanceKm} km away · ~{routeInfo.durationMins} min
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.stepsRow}>
+        {STATUS_STEPS.map((s, i) => (
+          <View key={s} style={styles.stepItem}>
+            <View style={[styles.stepDot, i <= stepIdx && styles.stepDotActive]} />
+            {i < STATUS_STEPS.length - 1 && (
+              <View style={[styles.stepLine, i < stepIdx && styles.stepLineActive]} />
+            )}
+          </View>
+        ))}
+      </View>
+      <Text style={styles.statusLabel}>{
+        ride.status === 'accepted'    ? t('driverOnTheWay') :
+        ride.status === 'arrived'     ? t('driverArrived') :
+        ride.status === 'in_progress' ? t('onYourWay') :
+        ride.status === 'completed'   ? t('arrivedDestination') : '…'
+      }</Text>
+
+      <View style={styles.driverCard}>
+        <View style={styles.driverAvatar}><Text style={{ fontSize: 32 }}>👩</Text></View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.driverName}>{ride.driverName || t('yourDriver')}</Text>
+          <Text style={styles.driverCar}>{ride.driverCar || '—'}</Text>
+          <Text style={styles.driverPlate}>{ride.driverPlate || ''}</Text>
+        </View>
+        <View style={styles.fareBox}>
+          <Text style={styles.fareLabel}>{t('fareLabel')}</Text>
+          <Text style={styles.fareAmount}>{ride.estimatedFare} EGP</Text>
+        </View>
+      </View>
+
+      <View style={styles.tripInfo}>
+        <View style={styles.tripRow}>
+          <View style={[styles.dot, { backgroundColor: colors.success }]} />
+          <Text style={styles.tripText}>{ride.from}</Text>
+        </View>
+        <View style={styles.tripRow}>
+          <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+          <Text style={styles.tripText}>{ride.to}</Text>
+        </View>
+      </View>
+
+      {ride.status === 'accepted' && (
+        <AnimatedPressable style={styles.cancelBtn} onPress={handleCancel}>
+          <Text style={styles.cancelText}>{t('cancelRide')}</Text>
+        </AnimatedPressable>
+      )}
+    </SafeAreaView>
+  );
+}
+
+function makeStyles(colors, shadow) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.white },
+    mapWrap: { position: 'relative', margin: 16 },
+    etaOverlay: {
+      position: 'absolute', bottom: 10, left: 10, right: 10,
+      backgroundColor: 'rgba(26,26,46,0.85)', borderRadius: 10,
+      paddingVertical: 6, paddingHorizontal: 12, alignItems: 'center',
+    },
+    etaText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    stepsRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, marginTop: 4 },
+    stepItem: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+    stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.border },
+    stepDotActive: { backgroundColor: colors.primary },
+    stepLine: { flex: 1, height: 2, backgroundColor: colors.border },
+    stepLineActive: { backgroundColor: colors.primary },
+    statusLabel: { textAlign: 'center', fontSize: 15, fontWeight: '700', color: colors.dark, marginTop: 10, marginBottom: 12 },
+    driverCard: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: colors.white, marginHorizontal: 16,
+      borderRadius: 16, padding: 16, ...shadow.md, marginBottom: 10,
+    },
+    driverAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primaryBg, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    driverName: { fontSize: 16, fontWeight: '700', color: colors.dark },
+    driverCar: { fontSize: 13, color: colors.gray, marginTop: 2 },
+    driverPlate: { fontSize: 12, color: colors.gray },
+    fareBox: { alignItems: 'flex-end' },
+    fareLabel: { fontSize: 11, color: colors.gray },
+    fareAmount: { fontSize: 18, fontWeight: '800', color: colors.primary },
+    tripInfo: { marginHorizontal: 16, backgroundColor: colors.lightGray, borderRadius: 12, padding: 14, gap: 8, marginBottom: 12 },
+    tripRow: { flexDirection: 'row', alignItems: 'center' },
+    dot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
+    tripText: { fontSize: 14, color: colors.dark, flex: 1 },
+    cancelBtn: { marginHorizontal: 16, marginBottom: 20, alignItems: 'center' },
+    cancelText: { color: colors.error, fontSize: 15, fontWeight: '600' },
+  });
+}

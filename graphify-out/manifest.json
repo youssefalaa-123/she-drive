@@ -1,0 +1,227 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1781892179.454302,
+    "ast_hash": "dc580fca35a0e98ed20777ede5e545a1",
+    "semantic_hash": "dc580fca35a0e98ed20777ede5e545a1"
+  },
+  ".impeccable/hook.cache.json": {
+    "mtime": 1783031819.5652866,
+    "ast_hash": "afff01f34c72a33048cbd5579165d047",
+    "semantic_hash": "afff01f34c72a33048cbd5579165d047"
+  },
+  "App.js": {
+    "mtime": 1781908276.0059707,
+    "ast_hash": "ea0bc193519e6523e586fe126dad67ac",
+    "semantic_hash": "ea0bc193519e6523e586fe126dad67ac"
+  },
+  "app.json": {
+    "mtime": 1782349188.052169,
+    "ast_hash": "72cf082aaabd31e23d594ef028c1cc47",
+    "semantic_hash": "72cf082aaabd31e23d594ef028c1cc47"
+  },
+  "babel.config.js": {
+    "mtime": 1781907263.9110749,
+    "ast_hash": "8fc7a520543679a79421ba4e2dbcfe90",
+    "semantic_hash": "8fc7a520543679a79421ba4e2dbcfe90"
+  },
+  "index.js": {
+    "mtime": 1781892107.3863652,
+    "ast_hash": "33caa6d28d87fc7e637c033d0d7124b1",
+    "semantic_hash": "33caa6d28d87fc7e637c033d0d7124b1"
+  },
+  "package.json": {
+    "mtime": 1781908243.094725,
+    "ast_hash": "992fdf22cb359f0f0f4157228f85478b",
+    "semantic_hash": "992fdf22cb359f0f0f4157228f85478b"
+  },
+  "src/components/BadgeModal.js": {
+    "mtime": 1781907452.800364,
+    "ast_hash": "1a5ebd1b0d1b847b2f755b171ae9c416",
+    "semantic_hash": "1a5ebd1b0d1b847b2f755b171ae9c416"
+  },
+  "src/components/CardInputModal.js": {
+    "mtime": 1783013000.7871573,
+    "ast_hash": "ce5a04cf5207220027659f42cab425e9",
+    "semantic_hash": "ce5a04cf5207220027659f42cab425e9"
+  },
+  "src/components/ErrorBoundary.js": {
+    "mtime": 1781908257.2353058,
+    "ast_hash": "a0f918afda6806fa9385b79761760521",
+    "semantic_hash": "a0f918afda6806fa9385b79761760521"
+  },
+  "src/components/LeafletMap.js": {
+    "mtime": 1782476225.6724935,
+    "ast_hash": "ebb9f0a69609bc2915be8d5804329c14",
+    "semantic_hash": "ebb9f0a69609bc2915be8d5804329c14"
+  },
+  "src/components/LeafletMap.web.js": {
+    "mtime": 1782497589.987937,
+    "ast_hash": "55422acf600b0164051a826e721fbde3",
+    "semantic_hash": "55422acf600b0164051a826e721fbde3"
+  },
+  "src/components/LocationSearch.js": {
+    "mtime": 1782475737.0650988,
+    "ast_hash": "d8368fcacb2176c32825f1606142f871",
+    "semantic_hash": "d8368fcacb2176c32825f1606142f871"
+  },
+  "src/components/LocationSearch.web.js": {
+    "mtime": 1782497622.2477372,
+    "ast_hash": "3b374db4953f7d7f83296e031d78a213",
+    "semantic_hash": "3b374db4953f7d7f83296e031d78a213"
+  },
+  "src/components/PhotoPicker.js": {
+    "mtime": 1782412103.986638,
+    "ast_hash": "6a4ffb16f61775fb3df474f636b99513",
+    "semantic_hash": "6a4ffb16f61775fb3df474f636b99513"
+  },
+  "src/components/RatingStars.js": {
+    "mtime": 1781907457.4645169,
+    "ast_hash": "cd2356331960316391d521e67fb131b7",
+    "semantic_hash": "cd2356331960316391d521e67fb131b7"
+  },
+  "src/components/WalletTopUpModal.js": {
+    "mtime": 1783013032.837008,
+    "ast_hash": "62bbb6025a1553b31080ae1ebd02627d",
+    "semantic_hash": "62bbb6025a1553b31080ae1ebd02627d"
+  },
+  "src/config/maps.js": {
+    "mtime": 1782497434.1622665,
+    "ast_hash": "738b7067f539aa9bf5c5c2e8bee8315a",
+    "semantic_hash": "738b7067f539aa9bf5c5c2e8bee8315a"
+  },
+  "src/context/AuthContext.js": {
+    "mtime": 1782163458.9932048,
+    "ast_hash": "1f19bbd85cd596cf1fcd69ef706d4291",
+    "semantic_hash": "1f19bbd85cd596cf1fcd69ef706d4291"
+  },
+  "src/data/cairoPOIs.js": {
+    "mtime": 1783011616.52256,
+    "ast_hash": "fa7ee8b7a52a44f8474d841754d98020",
+    "semantic_hash": "fa7ee8b7a52a44f8474d841754d98020"
+  },
+  "src/firebase/config.js": {
+    "mtime": 1782343504.4094963,
+    "ast_hash": "5aeac69da9a50c8b77f0745d57049466",
+    "semantic_hash": "5aeac69da9a50c8b77f0745d57049466"
+  },
+  "src/navigation/AuthStack.js": {
+    "mtime": 1781907300.8823495,
+    "ast_hash": "194b2d8784033a7ee079b3b0b07e7d4d",
+    "semantic_hash": "194b2d8784033a7ee079b3b0b07e7d4d"
+  },
+  "src/navigation/DriverNavigator.js": {
+    "mtime": 1781907309.5987158,
+    "ast_hash": "e51a27dfa017307bca870f2f402da09e",
+    "semantic_hash": "e51a27dfa017307bca870f2f402da09e"
+  },
+  "src/navigation/PassengerNavigator.js": {
+    "mtime": 1781907304.9580505,
+    "ast_hash": "67beaeaeb0a0a3e1972b389efe0c6ade",
+    "semantic_hash": "67beaeaeb0a0a3e1972b389efe0c6ade"
+  },
+  "src/navigation/RootNavigator.js": {
+    "mtime": 1782163481.6431572,
+    "ast_hash": "0ac73496bf54246b528908962f65773b",
+    "semantic_hash": "0ac73496bf54246b528908962f65773b"
+  },
+  "src/screens/auth/DriverOnboarding.js": {
+    "mtime": 1783031040.4651618,
+    "ast_hash": "a59cec467714f7b9fbf2d6ce999ab17d",
+    "semantic_hash": "a59cec467714f7b9fbf2d6ce999ab17d"
+  },
+  "src/screens/auth/LoginScreen.js": {
+    "mtime": 1783030942.019856,
+    "ast_hash": "e32562f1f1eba2103da54caa89167b05",
+    "semantic_hash": "e32562f1f1eba2103da54caa89167b05"
+  },
+  "src/screens/auth/PassengerOnboarding.js": {
+    "mtime": 1783030988.2040484,
+    "ast_hash": "d9b0ea8aff20996c5f5de4f73f3eec67",
+    "semantic_hash": "d9b0ea8aff20996c5f5de4f73f3eec67"
+  },
+  "src/screens/auth/PendingApproval.js": {
+    "mtime": 1781907441.7091608,
+    "ast_hash": "8d5400a8ce5b09fee80992d29469da5e",
+    "semantic_hash": "8d5400a8ce5b09fee80992d29469da5e"
+  },
+  "src/screens/auth/RegisterScreen.js": {
+    "mtime": 1782164221.084222,
+    "ast_hash": "dddfe84ba11d09eef7aafd16651b90e8",
+    "semantic_hash": "dddfe84ba11d09eef7aafd16651b90e8"
+  },
+  "src/screens/auth/SplashScreen.js": {
+    "mtime": 1782164205.118435,
+    "ast_hash": "c61b407b4efdc41fe09a3b585b8595de",
+    "semantic_hash": "c61b407b4efdc41fe09a3b585b8595de"
+  },
+  "src/screens/driver/ActiveTripScreen.js": {
+    "mtime": 1782476155.5722733,
+    "ast_hash": "e48f69f98e1bdcf50d9ac6588a8e57be",
+    "semantic_hash": "e48f69f98e1bdcf50d9ac6588a8e57be"
+  },
+  "src/screens/driver/EarningsScreen.js": {
+    "mtime": 1783015234.160042,
+    "ast_hash": "19b6f871eb053cad6da60fb0e0202da3",
+    "semantic_hash": "19b6f871eb053cad6da60fb0e0202da3"
+  },
+  "src/screens/driver/HomeScreen.js": {
+    "mtime": 1783012306.94786,
+    "ast_hash": "dfcd62a311216d75db853536b2846228",
+    "semantic_hash": "dfcd62a311216d75db853536b2846228"
+  },
+  "src/screens/driver/ProfileScreen.js": {
+    "mtime": 1781907740.7425878,
+    "ast_hash": "01dd8170ab398f8d3ff531699e7d326c",
+    "semantic_hash": "01dd8170ab398f8d3ff531699e7d326c"
+  },
+  "src/screens/passenger/ActiveRideScreen.js": {
+    "mtime": 1782475960.2567942,
+    "ast_hash": "a49a1f685b57d741e22f9bec06735155",
+    "semantic_hash": "a49a1f685b57d741e22f9bec06735155"
+  },
+  "src/screens/passenger/HistoryWalletScreen.js": {
+    "mtime": 1783015226.2584698,
+    "ast_hash": "647e209c0deeeab216449d8e4d2d012d",
+    "semantic_hash": "647e209c0deeeab216449d8e4d2d012d"
+  },
+  "src/screens/passenger/HomeScreen.js": {
+    "mtime": 1783015286.642235,
+    "ast_hash": "f9cbe2855ddcd536f60209b00572c858",
+    "semantic_hash": "f9cbe2855ddcd536f60209b00572c858"
+  },
+  "src/screens/passenger/ProfileScreen.js": {
+    "mtime": 1783013152.0435975,
+    "ast_hash": "5cd8ed9f2039982f415911c494d8fed7",
+    "semantic_hash": "5cd8ed9f2039982f415911c494d8fed7"
+  },
+  "src/screens/passenger/TripSummaryScreen.js": {
+    "mtime": 1783012341.9561987,
+    "ast_hash": "cf4634ab407767c2ebc558ea1d3faa2b",
+    "semantic_hash": "cf4634ab407767c2ebc558ea1d3faa2b"
+  },
+  "src/theme.js": {
+    "mtime": 1781907268.823853,
+    "ast_hash": "79714914ca8a55b671660855b501bce2",
+    "semantic_hash": "79714914ca8a55b671660855b501bce2"
+  },
+  "src/utils/googleMaps.js": {
+    "mtime": 1782479572.9821074,
+    "ast_hash": "febe25f4a33ff7ffa95093a5a215c9cb",
+    "semantic_hash": "febe25f4a33ff7ffa95093a5a215c9cb"
+  },
+  "src/utils/mapbox.js": {
+    "mtime": 1782479040.4987917,
+    "ast_hash": "adf46699680bab40fe46a9c3ee130573",
+    "semantic_hash": "adf46699680bab40fe46a9c3ee130573"
+  },
+  "src/utils/pricing.js": {
+    "mtime": 1781907278.795966,
+    "ast_hash": "3c8ead47905c31ed1923246f3162507c",
+    "semantic_hash": "3c8ead47905c31ed1923246f3162507c"
+  },
+  "src/utils/routing.js": {
+    "mtime": 1782497553.160226,
+    "ast_hash": "e83324cd8e5827a90a6f40c34577310b",
+    "semantic_hash": "e83324cd8e5827a90a6f40c34577310b"
+  }
+}

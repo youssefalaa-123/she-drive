@@ -1,0 +1,352 @@
+{
+  "communities": {
+    "0": [
+      "src_components_leafletmap",
+      "src_components_leafletmap_leafletmap",
+      "src_components_photopicker",
+      "src_components_photopicker_launchpicker",
+      "src_components_photopicker_photopicker",
+      "src_components_photopicker_styles",
+      "src_components_photopicker_uploadtocloudinary",
+      "src_navigation_authstack",
+      "src_navigation_authstack_stack",
+      "src_screens_auth_driveronboarding",
+      "src_screens_auth_driveronboarding_driveronboarding",
+      "src_screens_auth_driveronboarding_styles",
+      "src_screens_auth_loginscreen",
+      "src_screens_auth_loginscreen_friendlyerror",
+      "src_screens_auth_loginscreen_loginscreen",
+      "src_screens_auth_loginscreen_styles",
+      "src_screens_auth_passengeronboarding",
+      "src_screens_auth_passengeronboarding_passengeronboarding",
+      "src_screens_auth_passengeronboarding_styles",
+      "src_screens_auth_registerscreen",
+      "src_screens_auth_registerscreen_registerscreen",
+      "src_screens_auth_registerscreen_styles",
+      "src_screens_auth_splashscreen",
+      "src_screens_auth_splashscreen_splashscreen",
+      "src_screens_auth_splashscreen_styles",
+      "src_screens_driver_homescreen",
+      "src_screens_driver_homescreen_styles",
+      "src_screens_passenger_activeridescreen",
+      "src_screens_passenger_activeridescreen_activeridescreen",
+      "src_screens_passenger_activeridescreen_status_labels",
+      "src_screens_passenger_activeridescreen_status_steps",
+      "src_screens_passenger_activeridescreen_styles",
+      "src_theme",
+      "src_theme_colors",
+      "src_theme_shadow"
+    ],
+    "1": [
+      "package",
+      "package_dependencies",
+      "package_dependencies_expo",
+      "package_dependencies_expo_asset",
+      "package_dependencies_expo_av",
+      "package_dependencies_expo_image_picker",
+      "package_dependencies_expo_location",
+      "package_dependencies_expo_status_bar",
+      "package_dependencies_firebase",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_react_native",
+      "package_dependencies_react_native_gesture_handler",
+      "package_dependencies_react_native_safe_area_context",
+      "package_dependencies_react_native_screens",
+      "package_dependencies_react_native_web",
+      "package_dependencies_react_navigation_bottom_tabs",
+      "package_dependencies_react_navigation_native",
+      "package_dependencies_react_navigation_stack",
+      "package_main",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_android",
+      "package_scripts_ios",
+      "package_scripts_start",
+      "package_scripts_web",
+      "package_version"
+    ],
+    "2": [
+      "app_app",
+      "app_js_app",
+      "index",
+      "src_components_errorboundary",
+      "src_components_errorboundary_errorboundary",
+      "src_components_errorboundary_errorboundary_getderivedstatefromerror",
+      "src_components_errorboundary_errorboundary_render",
+      "src_components_errorboundary_styles",
+      "src_context_authcontext",
+      "src_context_authcontext_authcontext",
+      "src_context_authcontext_authprovider",
+      "src_firebase_config",
+      "src_firebase_config_auth",
+      "src_firebase_config_firebaseconfig",
+      "src_navigation_authstack_authstack",
+      "src_navigation_rootnavigator",
+      "src_navigation_rootnavigator_navigator",
+      "src_navigation_rootnavigator_pendingstack",
+      "src_navigation_rootnavigator_pendingstacknavigator",
+      "src_navigation_rootnavigator_rootnavigator",
+      "src_screens_auth_pendingapproval",
+      "src_screens_auth_pendingapproval_pendingapproval",
+      "src_screens_auth_pendingapproval_styles"
+    ],
+    "3": [
+      "src_components_wallettopupmodal",
+      "src_components_wallettopupmodal_presets",
+      "src_components_wallettopupmodal_savedcardrow",
+      "src_components_wallettopupmodal_styles",
+      "src_components_wallettopupmodal_wallettopupmodal",
+      "src_context_authcontext_useauth",
+      "src_firebase_config_db",
+      "src_navigation_passengernavigator",
+      "src_navigation_passengernavigator_passengernavigator",
+      "src_navigation_passengernavigator_passengertabs",
+      "src_navigation_passengernavigator_stack",
+      "src_navigation_passengernavigator_tab",
+      "src_screens_driver_earningsscreen",
+      "src_screens_driver_earningsscreen_earningsscreen",
+      "src_screens_driver_earningsscreen_styles",
+      "src_screens_passenger_historywalletscreen",
+      "src_screens_passenger_historywalletscreen_historywalletscreen",
+      "src_screens_passenger_historywalletscreen_styles",
+      "src_screens_passenger_profilescreen",
+      "src_screens_passenger_profilescreen_profilescreen",
+      "src_screens_passenger_profilescreen_styles"
+    ],
+    "4": [
+      "app_adaptiveicon_backgroundcolor",
+      "app_adaptiveicon_backgroundimage",
+      "app_adaptiveicon_foregroundimage",
+      "app_adaptiveicon_monochromeimage",
+      "app_android_adaptiveicon",
+      "app_expo",
+      "app_expo_android",
+      "app_expo_icon",
+      "app_expo_ios",
+      "app_expo_name",
+      "app_expo_newarchenabled",
+      "app_expo_orientation",
+      "app_expo_plugins",
+      "app_expo_slug",
+      "app_expo_userinterfacestyle",
+      "app_expo_version",
+      "app_expo_web",
+      "app_ios_supportstablet",
+      "app_json_app",
+      "app_web_favicon"
+    ],
+    "5": [
+      "src_components_cardinputmodal",
+      "src_components_cardinputmodal_cardinputmodal",
+      "src_components_cardinputmodal_cardpreviewnumber",
+      "src_components_cardinputmodal_detectcardtype",
+      "src_components_cardinputmodal_formatexpiry",
+      "src_components_cardinputmodal_formatnumber",
+      "src_components_cardinputmodal_s",
+      "src_components_locationsearch",
+      "src_components_locationsearch_locationsearch",
+      "src_components_locationsearch_styles",
+      "src_screens_passenger_homescreen",
+      "src_screens_passenger_homescreen_homescreen",
+      "src_screens_passenger_homescreen_payment_options",
+      "src_screens_passenger_homescreen_reversegeocode",
+      "src_screens_passenger_homescreen_styles",
+      "src_utils_pricing",
+      "src_utils_pricing_applyfirstridediscount",
+      "src_utils_pricing_calculatefare",
+      "src_utils_pricing_gettimeperiodlabel"
+    ],
+    "6": [
+      "src_components_badgemodal",
+      "src_components_badgemodal_badgemodal",
+      "src_components_badgemodal_particles",
+      "src_components_badgemodal_styles",
+      "src_components_ratingstars",
+      "src_components_ratingstars_ratingstars",
+      "src_components_ratingstars_styles",
+      "src_screens_driver_profilescreen",
+      "src_screens_driver_profilescreen_detailrow",
+      "src_screens_driver_profilescreen_driverprofilescreen",
+      "src_screens_driver_profilescreen_styles",
+      "src_screens_passenger_tripsummaryscreen",
+      "src_screens_passenger_tripsummaryscreen_paymentlabel",
+      "src_screens_passenger_tripsummaryscreen_row",
+      "src_screens_passenger_tripsummaryscreen_styles",
+      "src_screens_passenger_tripsummaryscreen_tripsummaryscreen"
+    ],
+    "7": [
+      "src_components_leafletmap_web",
+      "src_components_leafletmap_web_buildhtml",
+      "src_components_leafletmap_web_leafletmap",
+      "src_config_maps",
+      "src_config_maps_egypt_bbox",
+      "src_config_maps_map_defaults",
+      "src_utils_googlemaps",
+      "src_utils_googlemaps_getautocompletesuggestions",
+      "src_utils_googlemaps_getdrivingroute",
+      "src_utils_googlemaps_getplacedetails",
+      "src_utils_googlemaps_loadgooglemaps",
+      "src_utils_mapbox",
+      "src_utils_mapbox_getautocompletesuggestions",
+      "src_utils_mapbox_getdrivingroute",
+      "src_utils_mapbox_newsessiontoken",
+      "src_utils_mapbox_retrieveplace"
+    ],
+    "8": [
+      "src_navigation_drivernavigator",
+      "src_navigation_drivernavigator_drivernavigator",
+      "src_navigation_drivernavigator_drivertabs",
+      "src_navigation_drivernavigator_stack",
+      "src_navigation_drivernavigator_tab",
+      "src_screens_driver_activetripscreen",
+      "src_screens_driver_activetripscreen_activetripscreen",
+      "src_screens_driver_activetripscreen_haversinekm",
+      "src_screens_driver_activetripscreen_row",
+      "src_screens_driver_activetripscreen_styles",
+      "src_screens_driver_homescreen_driverhomescreen",
+      "src_utils_pricing_splitfare"
+    ],
+    "9": [
+      "src_components_locationsearch_web",
+      "src_components_locationsearch_web_locationsearch",
+      "src_components_locationsearch_web_styles",
+      "src_data_cairopois",
+      "src_data_cairopois_pois",
+      "src_data_cairopois_searchpois",
+      "src_utils_routing",
+      "src_utils_routing_getautocompletesuggestions",
+      "src_utils_routing_getdrivingroute"
+    ],
+    "10": [
+      "babel_config"
+    ]
+  },
+  "cohesion": {
+    "0": 0.11092436974789915,
+    "1": 0.07142857142857142,
+    "2": 0.11857707509881422,
+    "3": 0.1523809523809524,
+    "4": 0.1,
+    "5": 0.16374269005847952,
+    "6": 0.15833333333333333,
+    "7": 0.15833333333333333,
+    "8": 0.21212121212121213,
+    "9": 0.3055555555555556,
+    "10": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_theme_colors",
+      "label": "colors",
+      "degree": 27
+    },
+    {
+      "id": "src_context_authcontext_useauth",
+      "label": "useAuth()",
+      "degree": 17
+    },
+    {
+      "id": "src_theme_shadow",
+      "label": "shadow",
+      "degree": 16
+    },
+    {
+      "id": "src_firebase_config_db",
+      "label": "db",
+      "degree": 15
+    },
+    {
+      "id": "app_expo",
+      "label": "expo",
+      "degree": 12
+    },
+    {
+      "id": "src_firebase_config_auth",
+      "label": "auth",
+      "degree": 8
+    },
+    {
+      "id": "src_components_cardinputmodal_cardinputmodal",
+      "label": "CardInputModal()",
+      "degree": 6
+    },
+    {
+      "id": "src_screens_passenger_homescreen_homescreen",
+      "label": "HomeScreen()",
+      "degree": 6
+    },
+    {
+      "id": "app_android_adaptiveicon",
+      "label": "adaptiveIcon",
+      "degree": 5
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Navigator()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/navigation/RootNavigator.js",
+        "src/context/AuthContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities; peripheral node `Navigator()` unexpectedly reaches hub `useAuth()`"
+    },
+    {
+      "source": "DriverHomeScreen()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/screens/driver/HomeScreen.js",
+        "src/context/AuthContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "DriverProfileScreen()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/screens/driver/ProfileScreen.js",
+        "src/context/AuthContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "HomeScreen()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/screens/passenger/HomeScreen.js",
+        "src/context/AuthContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "TripSummaryScreen()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/screens/passenger/TripSummaryScreen.js",
+        "src/context/AuthContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}
