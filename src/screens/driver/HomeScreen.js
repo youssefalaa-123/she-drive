@@ -153,6 +153,8 @@ export default function DriverHomeScreen({ navigation }) {
           driverName: userProfile.name,
           driverCar: `${userProfile.carColor} ${userProfile.carModel}`,
           driverPlate: userProfile.plateNumber,
+          driverPhone: userProfile.phone ?? '',
+          driverPhotoUrl: userProfile.photoUrl ?? '',
           driverRating: userProfile.rating ?? 0,
           driverTotalTrips: userProfile.totalTrips ?? 0,
           acceptedAt: serverTimestamp(),
@@ -351,6 +353,11 @@ export default function DriverHomeScreen({ navigation }) {
                 </Text>
               </View>
             </View>
+            {incomingRide?.pickupNote ? (
+              <View style={styles.pickupNoteBanner}>
+                <Text style={styles.pickupNoteText}>📍 {incomingRide.pickupNote}</Text>
+              </View>
+            ) : null}
             {pickupRoute?.durationMins != null && (
               <View style={styles.etaBanner}>
                 <Text style={styles.etaBannerText}>~{pickupRoute.durationMins} min to reach passenger pickup point</Text>
@@ -406,6 +413,8 @@ function makeStyles(colors, shadow) {
     rideMeta: { alignItems: 'center', flex: 1 },
     rideMetaLabel: { fontSize: 11, color: colors.gray, marginBottom: 4, textAlign: 'center' },
     rideMetaValue: { fontSize: 18, fontWeight: '800', color: colors.dark },
+    pickupNoteBanner: { backgroundColor: colors.primaryBg, borderRadius: 10, padding: 10, marginBottom: 10, borderLeftWidth: 3, borderLeftColor: colors.primary },
+    pickupNoteText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
     etaBanner: { backgroundColor: '#FFF8E7', borderRadius: 10, padding: 10, marginBottom: 16, alignItems: 'center' },
     etaBannerText: { color: '#92600A', fontSize: 13, fontWeight: '600' },
     modalActions: { flexDirection: 'row', gap: 12 },

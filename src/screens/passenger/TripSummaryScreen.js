@@ -45,22 +45,25 @@ export default function TripSummaryScreen({ navigation, route }) {
       const walletPaid = ride.walletAmountPaid || 0;
       const cashOrCardPaid = ride.remainingAmount || 0;
 
-      if (method === 'card') {
-        await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(driverAmount) });
-      } else if (method === 'wallet') {
-        await updateDoc(doc(db, 'users', user.uid), { wallet: increment(-fare) });
-        await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(driverAmount) });
-      } else if (method === 'wallet+card') {
-        await updateDoc(doc(db, 'users', user.uid), { wallet: increment(-walletPaid) });
-        await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(driverAmount) });
-      } else if (method === 'wallet+cash') {
-        const walletDriverShare = Math.round(walletPaid * 0.85);
-        const cashCommission = Math.round(cashOrCardPaid * 0.15);
-        await updateDoc(doc(db, 'users', user.uid), { wallet: increment(-walletPaid) });
-        await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(walletDriverShare - cashCommission) });
-      } else {
-        await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(-adminAmount) });
-      }
+      // Payment settlement (fire individually so one failure doesn't block trip count)
+      try {
+        if (method === 'card') {
+          await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(driverAmount) });
+        } else if (method === 'wallet') {
+          await updateDoc(doc(db, 'users', user.uid), { wallet: increment(-fare) });
+          if (ride.driverId) await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(driverAmount) });
+        } else if (method === 'wallet+card') {
+          await updateDoc(doc(db, 'users', user.uid), { wallet: increment(-walletPaid) });
+          if (ride.driverId) await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(driverAmount) });
+        } else if (method === 'wallet+cash') {
+          const walletDriverShare = Math.round(walletPaid * 0.85);
+          const cashCommission = Math.round(cashOrCardPaid * 0.15);
+          await updateDoc(doc(db, 'users', user.uid), { wallet: increment(-walletPaid) });
+          if (ride.driverId) await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(walletDriverShare - cashCommission) });
+        } else if (ride.driverId) {
+          await updateDoc(doc(db, 'users', ride.driverId), { wallet: increment(-adminAmount) });
+        }
+      } catch (_) {}
 
       await updateDoc(doc(db, 'rides', rideId), {
         passengerRating: rating,
@@ -68,20 +71,23 @@ export default function TripSummaryScreen({ navigation, route }) {
         completedAt: serverTimestamp(),
       });
 
-      if (rating > 0) {
-        const driverSnap = await getDoc(doc(db, 'users', ride.driverId));
-        if (driverSnap.exists()) {
-          const d = driverSnap.data();
-          const newCount = (d.ratingCount || 0) + 1;
-          const newRating = ((d.rating || 0) * (d.ratingCount || 0) + rating) / newCount;
-          await updateDoc(doc(db, 'users', ride.driverId), { rating: newRating, ratingCount: newCount });
-        }
+      if (rating > 0 && ride.driverId) {
+        try {
+          const driverSnap = await getDoc(doc(db, 'users', ride.driverId));
+          if (driverSnap.exists()) {
+            const d = driverSnap.data();
+            const newCount = (d.ratingCount || 0) + 1;
+            const newRating = ((d.rating || 0) * (d.ratingCount || 0) + rating) / newCount;
+            await updateDoc(doc(db, 'users', ride.driverId), { rating: newRating, ratingCount: newCount });
+          }
+        } catch (_) {}
       }
 
       const newBadges = Math.floor(newTotal / 10);
       const oldBadges = Math.floor((userProfile?.totalTrips || 0) / 10);
+      // Always increment trip count — must not be inside a payment try/catch
       await updateDoc(doc(db, 'users', user.uid), { totalTrips: increment(1), badges: newBadges });
-      await updateDoc(doc(db, 'users', ride.driverId), { totalTrips: increment(1) });
+      if (ride.driverId) await updateDoc(doc(db, 'users', ride.driverId), { totalTrips: increment(1) });
 
       supabase.from('rides').upsert({
         id: rideId,
@@ -161,7 +167,7 @@ export default function TripSummaryScreen({ navigation, route }) {
         tripCount={newTripCount}
         onClose={() => { setBadgeVisible(false); handleDone(); }}
       />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.successBanner}>
           <Text style={styles.successEmoji}>✅</Text>
           <Text style={styles.successTitle}>{t('tripComplete')}</Text>
@@ -256,7 +262,7 @@ function Row({ label, value, highlight, styles, goldColor }) {
 function makeStyles(colors, shadow) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.primaryBg },
-    scroll: { padding: 20, paddingBottom: 40 },
+    scroll: { padding: 20, paddingBottom: 120 },
     successBanner: { alignItems: 'center', paddingVertical: 32 },
     successEmoji: { fontSize: 56, marginBottom: 12 },
     successTitle: { fontSize: 26, fontWeight: '800', color: colors.dark },

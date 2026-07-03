@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ActivityIndicator, Alert, Modal, ScrollView,
+  ActivityIndicator, Alert, Modal, ScrollView, Image,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -24,9 +25,11 @@ export default function ActiveRideScreen({ navigation, route }) {
   const [ride, setRide] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null);
   const [showDriverProfile, setShowDriverProfile] = useState(false);
+  const [waitSecsLeft, setWaitSecsLeft] = useState(null);
   const mapRef = useRef(null);
   const lastDriverPos = useRef(null);
   const acceptedShownRef = useRef(false);
+  const waitFeeAppliedRef = useRef(false);
 
   const { data: driverReviews } = useDriverReviews(ride?.driverId, 3);
 
@@ -44,13 +47,57 @@ export default function ActiveRideScreen({ navigation, route }) {
         Alert.alert(t('rideCancelled'), t('driverCancelledTrip'));
         navigation.navigate('PassengerTabs');
       }
+      if (data.status === 'searching') {
+        Alert.alert(t('rideCancelled'), t('driverSearchingAgain'));
+        navigation.navigate('PassengerTabs');
+      }
     });
   }, [rideId]);
+
+  // Waiting timer — starts from arrivedAt timestamp so it survives remounts
+  useEffect(() => {
+    if (!ride?.arrivedAt || ride.status !== 'arrived') {
+      setWaitSecsLeft(null);
+      return;
+    }
+    if (ride.waitingFee) {
+      waitFeeAppliedRef.current = true;
+      setWaitSecsLeft(0);
+      return;
+    }
+    const arrivedMs = ride.arrivedAt.toMillis ? ride.arrivedAt.toMillis() : Date.now();
+    const elapsed = Math.floor((Date.now() - arrivedMs) / 1000);
+    setWaitSecsLeft(Math.max(0, 300 - elapsed));
+  }, [ride?.status, ride?.arrivedAt?.toMillis?.()]);
+
+  useEffect(() => {
+    if (waitSecsLeft === null || waitSecsLeft <= 0) return;
+    const tid = setTimeout(() => setWaitSecsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(tid);
+  }, [waitSecsLeft]);
+
+  useEffect(() => {
+    if (waitSecsLeft !== 0 || waitFeeAppliedRef.current || !ride || ride.waitingFee) return;
+    waitFeeAppliedRef.current = true;
+    updateDoc(doc(db, 'rides', rideId), {
+      estimatedFare: (ride.estimatedFare || 0) + 10,
+      waitingFee: 10,
+    }).catch(() => {});
+    Alert.alert('', t('waitingFeeApplied'));
+  }, [waitSecsLeft]);
 
   useEffect(() => {
     if (!ride?.fromLat || !ride?.fromLon) return;
     mapRef.current?.setMarker('pickup', ride.fromLat, ride.fromLon, 'pickup', 'Your Pickup');
-    mapRef.current?.setView(ride.fromLat, ride.fromLon, 14);
+    if (ride.driverLat && ride.driverLng) {
+      const targetLat = ride.status === 'in_progress' ? (ride.toLat ?? ride.fromLat) : ride.fromLat;
+      const targetLon = ride.status === 'in_progress' ? (ride.toLon ?? ride.fromLon) : ride.fromLon;
+      mapRef.current?.setMarker('driver', ride.driverLat, ride.driverLng, 'driver', ride.driverName || 'Your Driver');
+      mapRef.current?.showRoute(ride.driverLat, ride.driverLng, targetLat, targetLon, (info) => setRouteInfo(info));
+      mapRef.current?.fit();
+    } else {
+      mapRef.current?.setView(ride.fromLat, ride.fromLon, 14);
+    }
   }, [ride?.fromLat, ride?.fromLon]);
 
   useEffect(() => {
@@ -123,14 +170,26 @@ export default function ActiveRideScreen({ navigation, route }) {
         <View style={styles.profileOverlay}>
           <View style={styles.profileSheet}>
             <View style={styles.profileHeader}>
-              <View style={styles.profileAvatar}><Text style={{ fontSize: 36 }}>👩</Text></View>
+              {ride?.driverPhotoUrl
+                ? <Image source={{ uri: ride.driverPhotoUrl }} style={styles.profileAvatarImg} />
+                : <View style={styles.profileAvatar}><Text style={{ fontSize: 36 }}>👩</Text></View>
+              }
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.profileName}>{ride?.driverName || t('yourDriver')}</Text>
                 <Text style={styles.profileCar}>{ride?.driverCar || ''} {ride?.driverPlate ? `· ${ride.driverPlate}` : ''}</Text>
                 <View style={styles.profileStats}>
                   <Text style={styles.statChip}>⭐ {ride?.driverRating?.toFixed(1) ?? '—'}</Text>
-                  <Text style={styles.statChip}>🚗 {ride?.driverTotalTrips ?? '—'} trips</Text>
+                  <Text style={styles.statChip}>🚗 {ride?.driverTotalTrips ?? '—'} {t('tripsLabel')}</Text>
                 </View>
+                {ride?.driverPhone ? (
+                  <TouchableOpacity
+                    style={styles.phoneRow}
+                    onPress={() => { Clipboard.setStringAsync(ride.driverPhone); Alert.alert(t('numberCopied')); }}
+                  >
+                    <Text style={styles.phoneText}>📞 {ride.driverPhone}</Text>
+                    <Text style={styles.copyBtn}>{t('copyNumber')}</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
             {driverReviews && driverReviews.length > 0 && (
@@ -200,6 +259,17 @@ export default function ActiveRideScreen({ navigation, route }) {
         </View>
       </View>
 
+      {ride.driverPhone ? (
+        <TouchableOpacity
+          style={styles.phoneCard}
+          onPress={() => { Clipboard.setStringAsync(ride.driverPhone); Alert.alert(t('numberCopied')); }}
+        >
+          <Text style={styles.phoneCardLabel}>{t('driverPhone')}</Text>
+          <Text style={styles.phoneCardNum}>📞 {ride.driverPhone}</Text>
+          <Text style={styles.phoneCardCopy}>{t('copyNumber')}</Text>
+        </TouchableOpacity>
+      ) : null}
+
       <View style={styles.tripInfo}>
         <View style={styles.tripRow}>
           <View style={[styles.dot, { backgroundColor: colors.success }]} />
@@ -211,7 +281,17 @@ export default function ActiveRideScreen({ navigation, route }) {
         </View>
       </View>
 
-      {ride.status === 'accepted' && (
+      {ride.status === 'arrived' && waitSecsLeft !== null && (
+        <View style={styles.waitTimerBox}>
+          <Text style={styles.waitTimerLabel}>{t('waitingTimerLabel')}</Text>
+          <Text style={[styles.waitTimerValue, waitSecsLeft <= 60 && styles.waitTimerRed]}>
+            {Math.floor(waitSecsLeft / 60)}:{String(waitSecsLeft % 60).padStart(2, '0')}
+          </Text>
+          {waitSecsLeft === 0 && <Text style={styles.waitFeeNote}>+10 EGP</Text>}
+        </View>
+      )}
+
+      {(ride.status === 'accepted' || ride.status === 'arrived') && (
         <AnimatedPressable style={styles.cancelBtn} onPress={handleCancel}>
           <Text style={styles.cancelText}>{t('cancelRide')}</Text>
         </AnimatedPressable>
@@ -253,13 +333,26 @@ function makeStyles(colors, shadow) {
     tripRow: { flexDirection: 'row', alignItems: 'center' },
     dot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
     tripText: { fontSize: 14, color: colors.dark, flex: 1 },
+    waitTimerBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, backgroundColor: '#FFF8E7', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#F0C040' },
+    waitTimerLabel: { fontSize: 13, color: '#92600A', fontWeight: '600' },
+    waitTimerValue: { fontSize: 18, fontWeight: '800', color: '#92600A' },
+    waitTimerRed: { color: colors.error },
+    waitFeeNote: { fontSize: 12, color: colors.error, fontWeight: '700' },
     cancelBtn: { marginHorizontal: 16, marginBottom: 20, alignItems: 'center' },
     cancelText: { color: colors.error, fontSize: 15, fontWeight: '600' },
+    phoneCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 10, backgroundColor: colors.white, borderRadius: 12, padding: 12, gap: 8 },
+    phoneCardLabel: { fontSize: 11, color: colors.gray },
+    phoneCardNum: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.dark },
+    phoneCardCopy: { fontSize: 12, color: colors.primary, fontWeight: '700' },
     // Driver profile modal
     profileOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     profileSheet: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
     profileHeader: { flexDirection: 'row', alignItems: 'center' },
     profileAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.primaryBg, justifyContent: 'center', alignItems: 'center' },
+    profileAvatarImg: { width: 60, height: 60, borderRadius: 30 },
+    phoneRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 6 },
+    phoneText: { fontSize: 13, color: colors.dark, fontWeight: '600' },
+    copyBtn: { fontSize: 11, color: colors.primary, fontWeight: '700', backgroundColor: colors.primaryBg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
     profileName: { fontSize: 18, fontWeight: '700', color: colors.dark },
     profileCar: { fontSize: 13, color: colors.gray, marginTop: 2 },
     profileStats: { flexDirection: 'row', gap: 8, marginTop: 6 },

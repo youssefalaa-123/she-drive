@@ -262,6 +262,25 @@ const strings = {
     avgRatingLabel: 'Avg Rating',
     closeBtn: 'Close',
 
+    // Phone & pickup note
+    copyNumber: 'Copy',
+    numberCopied: 'Copied!',
+    driverPhone: "Driver's Phone",
+    passengerPhone: "Passenger's Phone",
+    pickupNotePlaceholder: 'Additional pickup info (e.g. near bus station)',
+
+    // Cancel & re-search
+    driverCancelConfirmMsg: 'Cancel this ride? No cancellation fee will be charged. We\'ll find a new driver automatically.',
+    yesCancelDriverRide: 'Yes, Cancel',
+    driverSearchingAgain: 'Driver cancelled. Finding you a new driver…',
+
+    // Waiting timer
+    waitingTimerLabel: 'Free wait:',
+    waitingFeeApplied: '5-minute free wait exceeded. A 10 EGP waiting fee has been added to your fare.',
+
+    // Rate from history
+    rateNow: 'Rate Now',
+
     // Badge
     newBadgeEarned: 'New Badge Earned!',
     badgeBodyPre: "You've completed ",
@@ -598,6 +617,25 @@ const strings = {
     earnedLabel: 'مكتسب',
     avgRatingLabel: 'متوسط التقييم',
     closeBtn: 'إغلاق',
+
+    // Phone & pickup note
+    copyNumber: 'نسخ',
+    numberCopied: 'تم النسخ!',
+    driverPhone: 'رقم السائقة',
+    passengerPhone: 'رقم الراكبة',
+    pickupNotePlaceholder: 'معلومات إضافية عن نقطة الانطلاق (مثال: بجانب المحطة)',
+
+    // Cancel & re-search
+    driverCancelConfirmMsg: 'إلغاء الرحلة؟ لن يتم خصم أي رسوم وسيتم البحث تلقائياً عن سائقة جديدة.',
+    yesCancelDriverRide: 'نعم، إلغاء',
+    driverSearchingAgain: 'ألغت السائقة الرحلة. نبحث عن سائقة جديدة لكِ…',
+
+    // Waiting timer
+    waitingTimerLabel: 'انتظار مجاني:',
+    waitingFeeApplied: 'تجاوز وقت الانتظار 5 دقائق. تم إضافة رسوم انتظار 10 جنيه على الأجرة.',
+
+    // Rate from history
+    rateNow: 'قيّمي الآن',
 
     // Badge
     newBadgeEarned: 'حصلتِ على شارة جديدة!',

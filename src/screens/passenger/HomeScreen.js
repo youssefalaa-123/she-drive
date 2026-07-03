@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, SafeAreaView, Alert, ActivityIndicator,
+  ScrollView, SafeAreaView, Alert, ActivityIndicator, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -52,10 +52,12 @@ export default function HomeScreen({ navigation }) {
   const [calcStatus, setCalcStatus] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [searching, setSearching] = useState(false);
+  const [searchingRide, setSearchingRide] = useState(null);
   const [cardModalVisible, setCardModalVisible] = useState(false);
   const [activeRideId, setActiveRideId] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [pickupNote, setPickupNote] = useState('');
   const mapRef = useRef(null);
 
   const isFirstRide = (userProfile?.totalTrips ?? 0) === 0;
@@ -127,9 +129,20 @@ export default function HomeScreen({ navigation }) {
     return onSnapshot(q, (snap) => {
       if (!snap.empty) {
         const ride = { id: snap.docs[0].id, ...snap.docs[0].data() };
-        if (ride.status === 'searching') { setSearching(true); setActiveRideId(ride.id); }
-        else { setSearching(false); navigation.navigate('ActiveRide', { rideId: ride.id }); }
-      } else { setSearching(false); setActiveRideId(null); }
+        if (ride.status === 'searching') {
+          setSearching(true);
+          setActiveRideId(ride.id);
+          setSearchingRide(ride);
+        } else {
+          setSearching(false);
+          setSearchingRide(null);
+          navigation.navigate('ActiveRide', { rideId: ride.id });
+        }
+      } else {
+        setSearching(false);
+        setSearchingRide(null);
+        setActiveRideId(null);
+      }
     });
   }, [user]);
 
@@ -166,6 +179,8 @@ export default function HomeScreen({ navigation }) {
     try {
       const rideRef = await addDoc(collection(db, 'rides'), {
         passengerId: user.uid, passengerName: userProfile.name,
+        passengerPhone: userProfile.phone ?? '',
+        passengerPhotoUrl: userProfile.photoUrl ?? '',
         from: pickup.address, to: destination.address,
         fromLat: pickup.lat, fromLon: pickup.lng,
         toLat: destination.lat, toLon: destination.lng,
@@ -174,6 +189,7 @@ export default function HomeScreen({ navigation }) {
         paymentMethod,
         walletAmountPaid: paymentMethod.startsWith('wallet') ? walletAmountPaid : 0,
         remainingAmount: paymentMethod.startsWith('wallet+') ? remainingAmount : 0,
+        pickupNote: pickupNote.trim(),
         isFirstRide, status: 'searching', createdAt: serverTimestamp(),
       });
       supabase.from('rides').insert({
@@ -213,10 +229,14 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.searchTitle}>{t('findingDriver')}</Text>
           <Text style={styles.searchSub}>{t('connectingDriver')}</Text>
           <View style={styles.searchCard}>
-            <Text style={styles.searchRoute}>📍 {pickup?.address}</Text>
-            <Text style={[styles.searchRoute, { color: colors.primary }]}>🎯 {destination?.address}</Text>
-            {routeInfo && <Text style={styles.searchMeta}>{routeInfo.distanceKm} km · ~{routeInfo.durationMins} min</Text>}
-            <Text style={styles.searchFare}>{displayFare} EGP{isFirstRide ? '  🎉' : ''}</Text>
+            <Text style={styles.searchRoute}>📍 {searchingRide?.from || pickup?.address}</Text>
+            <Text style={[styles.searchRoute, { color: colors.primary }]}>🎯 {searchingRide?.to || destination?.address}</Text>
+            {(searchingRide || routeInfo) && (
+              <Text style={styles.searchMeta}>
+                {searchingRide?.distanceKm || routeInfo?.distanceKm} km · ~{searchingRide?.durationMins || routeInfo?.durationMins} min
+              </Text>
+            )}
+            <Text style={styles.searchFare}>{searchingRide?.estimatedFare || displayFare} EGP{isFirstRide ? '  🎉' : ''}</Text>
           </View>
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
             <Text style={styles.cancelText}>{t('cancelSearch')}</Text>
@@ -406,6 +426,15 @@ export default function HomeScreen({ navigation }) {
             </View>
           )}
 
+          <TextInput
+            style={styles.pickupNoteInput}
+            placeholder={t('pickupNotePlaceholder') || 'Additional pickup info (e.g. near the bus station)'}
+            placeholderTextColor={colors.gray}
+            value={pickupNote}
+            onChangeText={setPickupNote}
+            maxLength={100}
+          />
+
           <AnimatedPressable
             style={[styles.requestBtn, !canRequest && styles.requestBtnDisabled]}
             onPress={handleRequest}
@@ -441,6 +470,7 @@ function makeStyles(colors, shadow) {
     firstRideText: { color: '#92600A', fontSize: 13, fontWeight: '600', textAlign: 'center' },
     divider: { height: 1, backgroundColor: colors.border, marginLeft: 24 },
     locateBtn: { padding: 6, marginLeft: 4 },
+    pickupNoteInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, color: colors.dark, marginTop: 12, marginBottom: 4 },
     statusRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.lightGray, borderRadius: 10, padding: 10, marginTop: 8 },
     statusText: { fontSize: 13, color: colors.gray },
     priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', backgroundColor: colors.primaryBg, borderRadius: 12, padding: 14, marginTop: 12 },

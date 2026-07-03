@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, ActivityIndicator,
+  TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/SettingsContext';
 import WalletTopUpModal from '../../components/WalletTopUpModal';
+import RatingStars from '../../components/RatingStars';
 
 export default function HistoryWalletScreen() {
   const { user, userProfile } = useAuth();
@@ -19,6 +21,10 @@ export default function HistoryWalletScreen() {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [topUpVisible, setTopUpVisible] = useState(false);
+  const [ratingRide, setRatingRide] = useState(null);
+  const [ratingVal, setRatingVal] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -39,6 +45,40 @@ export default function HistoryWalletScreen() {
     );
   }, [user]);
 
+  const handleRateSubmit = async () => {
+    if (!ratingRide || ratingSubmitting) return;
+    setRatingSubmitting(true);
+    try {
+      await updateDoc(doc(db, 'rides', ratingRide.id), { passengerRating: ratingVal });
+      if (ratingVal > 0 && ratingRide.driverId) {
+        try {
+          const driverSnap = await getDoc(doc(db, 'users', ratingRide.driverId));
+          if (driverSnap.exists()) {
+            const d = driverSnap.data();
+            const newCount = (d.ratingCount || 0) + 1;
+            const newRating = ((d.rating || 0) * (d.ratingCount || 0) + ratingVal) / newCount;
+            await updateDoc(doc(db, 'users', ratingRide.driverId), { rating: newRating, ratingCount: newCount });
+          }
+        } catch (_) {}
+        supabase.from('reviews').insert({
+          ride_id: ratingRide.id,
+          driver_id: ratingRide.driverId,
+          passenger_id: user.uid,
+          passenger_name: userProfile?.name,
+          rating: ratingVal,
+          comment: ratingComment.trim() || null,
+        }).then(() => {});
+      }
+      setRatingRide(null);
+      setRatingVal(0);
+      setRatingComment('');
+    } catch (_) {
+      Alert.alert(t('error'), t('submissionFailed'));
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
+
   const formatDate = (ts) => {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -54,6 +94,40 @@ export default function HistoryWalletScreen() {
         savedCards={userProfile?.savedCards || []}
         onCardAdded={() => {}}
       />
+
+      <Modal visible={!!ratingRide} transparent animationType="slide">
+        <View style={styles.ratingOverlay}>
+          <View style={styles.ratingSheet}>
+            <Text style={styles.ratingTitle}>{t('rateDriver')}</Text>
+            <Text style={styles.ratingDriverName}>{ratingRide?.driverName}</Text>
+            <View style={{ alignItems: 'center', marginVertical: 16 }}>
+              <RatingStars rating={ratingVal} onRate={setRatingVal} size={44} />
+            </View>
+            <TextInput
+              style={styles.commentInput}
+              placeholder={t('leaveComment')}
+              placeholderTextColor={colors.gray}
+              value={ratingComment}
+              onChangeText={setRatingComment}
+              multiline
+              maxLength={200}
+            />
+            <TouchableOpacity
+              style={[styles.ratingSubmitBtn, ratingSubmitting && { opacity: 0.6 }]}
+              onPress={handleRateSubmit}
+              disabled={ratingSubmitting}
+            >
+              {ratingSubmitting
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.ratingSubmitText}>{ratingVal === 0 ? t('skipFinish') : t('submitRating')}</Text>
+              }
+            </TouchableOpacity>
+            <TouchableOpacity style={{ alignItems: 'center', marginTop: 10 }} onPress={() => setRatingRide(null)}>
+              <Text style={{ color: colors.gray, fontSize: 14 }}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.tabBar}>
         {[{ key: 'history', icon: 'time-outline' }, { key: 'wallet', icon: 'wallet-outline' }].map(({ key, icon }) => (
@@ -110,6 +184,14 @@ export default function HistoryWalletScreen() {
                     </>
                   )}
                 </View>
+                {!ride.passengerRating && (
+                  <TouchableOpacity
+                    style={styles.rateNowBtn}
+                    onPress={() => { setRatingRide(ride); setRatingVal(0); setRatingComment(''); }}
+                  >
+                    <Text style={styles.rateNowText}>{t('rateNow')} ★</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ))
           )}
@@ -199,5 +281,14 @@ function makeStyles(colors, shadow) {
     howItWorksCard: { backgroundColor: colors.white, borderRadius: 16, padding: 20, ...shadow.sm },
     howTitle: { fontSize: 15, fontWeight: '700', color: colors.dark, marginBottom: 12 },
     howItem: { fontSize: 14, color: colors.gray, marginBottom: 8, lineHeight: 20 },
+    rateNowBtn: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.primaryBg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: colors.primary + '60' },
+    rateNowText: { fontSize: 12, color: colors.primary, fontWeight: '700' },
+    ratingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    ratingSheet: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
+    ratingTitle: { fontSize: 18, fontWeight: '700', color: colors.dark, textAlign: 'center' },
+    ratingDriverName: { fontSize: 14, color: colors.gray, textAlign: 'center', marginTop: 4 },
+    commentInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.dark, minHeight: 72, textAlignVertical: 'top', marginBottom: 14 },
+    ratingSubmitBtn: { backgroundColor: colors.primary, borderRadius: 12, padding: 14, alignItems: 'center' },
+    ratingSubmitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   });
 }

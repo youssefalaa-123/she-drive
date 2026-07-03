@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  Alert, ActivityIndicator, Modal,
+  Alert, ActivityIndicator, Modal, Image,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -51,6 +52,15 @@ export default function ActiveTripScreen({ navigation, route }) {
       mapRef.current?.setMarker('pickup', ride.fromLat, ride.fromLon, 'pickup', `${t('pickupLabel')}: ${ride.from}`);
     if (ride.toLat && ride.toLon)
       mapRef.current?.setMarker('dropoff', ride.toLat, ride.toLon, 'dest', `${t('dropoffLabel')}: ${ride.to}`);
+    if (ride.driverLat && ride.driverLng) {
+      const targetLat = ride.status === 'in_progress' ? ride.toLat : ride.fromLat;
+      const targetLon = ride.status === 'in_progress' ? ride.toLon : ride.fromLon;
+      if (targetLat && targetLon) {
+        mapRef.current?.setMarker('driver', ride.driverLat, ride.driverLng, 'driver', 'You');
+        mapRef.current?.showRoute(ride.driverLat, ride.driverLng, targetLat, targetLon);
+        mapRef.current?.fit();
+      }
+    }
   }, [ride?.id]);
 
   useEffect(() => {
@@ -91,6 +101,28 @@ export default function ActiveTripScreen({ navigation, route }) {
       lastRouteUpdateRef.current = Date.now();
     }
   }, [ride?.status]);
+
+  const handleDriverCancel = () => {
+    Alert.alert(t('cancelRide'), t('driverCancelConfirmMsg'), [
+      { text: t('no'), style: 'cancel' },
+      {
+        text: t('yesCancelDriverRide'), style: 'destructive',
+        onPress: async () => {
+          try {
+            await updateDoc(doc(db, 'rides', rideId), {
+              status: 'searching',
+              driverId: null, driverName: null,
+              driverPhone: null, driverPhotoUrl: null,
+              driverCar: null, driverPlate: null,
+              driverRating: null, driverTotalTrips: null,
+              driverLat: null, driverLng: null,
+            });
+          } catch (_) {}
+          navigation.navigate('DriverTabs');
+        },
+      },
+    ]);
+  };
 
   const markArrived = () =>
     updateDoc(doc(db, 'rides', rideId), { status: 'arrived', arrivedAt: serverTimestamp() });
@@ -169,9 +201,21 @@ export default function ActiveTripScreen({ navigation, route }) {
       </View>
 
       <View style={styles.passengerCard}>
-        <View style={styles.passengerAvatar}><Text style={{ fontSize: 28 }}>👩</Text></View>
+        {ride.passengerPhotoUrl
+          ? <Image source={{ uri: ride.passengerPhotoUrl }} style={styles.passengerAvatarImg} />
+          : <View style={styles.passengerAvatar}><Text style={{ fontSize: 28 }}>👩</Text></View>
+        }
         <View style={{ flex: 1 }}>
           <Text style={styles.passengerName}>{ride.passengerName || t('passenger')}</Text>
+          {ride.passengerPhone ? (
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}
+              onPress={() => { Clipboard.setStringAsync(ride.passengerPhone); Alert.alert(t('numberCopied')); }}
+            >
+              <Text style={{ fontSize: 12, color: colors.dark }}>📞 {ride.passengerPhone}</Text>
+              <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>{t('copyNumber')}</Text>
+            </TouchableOpacity>
+          ) : null}
           <Text style={styles.pickupLabel}>
             {ride.status === 'accepted' || ride.status === 'arrived'
               ? `${t('pickupLabel')}: ${ride.from}`
@@ -188,6 +232,11 @@ export default function ActiveTripScreen({ navigation, route }) {
           <View style={[styles.dot, { backgroundColor: colors.success }]} />
           <Text style={styles.routeText}>{ride.from}</Text>
         </View>
+        {ride.pickupNote ? (
+          <Text style={{ fontSize: 12, color: colors.primary, marginLeft: 18, marginTop: 2, marginBottom: 4 }}>
+            📍 {ride.pickupNote}
+          </Text>
+        ) : null}
         <View style={[styles.routeRow, { marginTop: 8 }]}>
           <View style={[styles.dot, { backgroundColor: colors.primary }]} />
           <Text style={styles.routeText}>{ride.to}</Text>
@@ -212,6 +261,11 @@ export default function ActiveTripScreen({ navigation, route }) {
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
             <Text style={styles.actionBtnText}>  {t('completeTrip')}</Text>
           </AnimatedPressable>
+        )}
+        {(ride.status === 'accepted' || ride.status === 'arrived') && (
+          <TouchableOpacity style={styles.cancelDriverBtn} onPress={handleDriverCancel}>
+            <Text style={styles.cancelDriverText}>{t('cancelRide')}</Text>
+          </TouchableOpacity>
         )}
       </View>
     </SafeAreaView>
@@ -239,6 +293,7 @@ function makeStyles(colors, shadow) {
     navText: { color: '#fff', fontSize: 13, fontWeight: '700' },
     passengerCard: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, backgroundColor: colors.white, borderRadius: 16, padding: 16, ...shadow.md, marginBottom: 10, marginTop: 14 },
     passengerAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.primaryBg, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    passengerAvatarImg: { width: 52, height: 52, borderRadius: 26, marginRight: 12 },
     passengerName: { fontSize: 16, fontWeight: '700', color: colors.dark },
     pickupLabel: { fontSize: 12, color: colors.gray, marginTop: 2 },
     fareChip: { backgroundColor: colors.primaryBg, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12 },
@@ -264,5 +319,7 @@ function makeStyles(colors, shadow) {
     paymentNote: { fontSize: 13, color: colors.gray, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
     doneBtn: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
     doneBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    cancelDriverBtn: { marginTop: 12, alignItems: 'center', paddingVertical: 10 },
+    cancelDriverText: { color: colors.error, fontSize: 14, fontWeight: '600' },
   });
 }
