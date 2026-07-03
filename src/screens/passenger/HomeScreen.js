@@ -18,6 +18,7 @@ import LeafletMap from '../../components/LeafletMap';
 import LocationSearch from '../../components/LocationSearch';
 import CardInputModal from '../../components/CardInputModal';
 import AnimatedPressable from '../../components/AnimatedPressable';
+import CoachingBanner from '../../components/CoachingBanner';
 
 const PAYMENT_IDS = [
   { id: 'cash',   label: '💵' },
@@ -247,6 +248,8 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.walletText}> {userProfile?.wallet || 0} EGP</Text>
           </View>
         </View>
+
+        <CoachingBanner />
 
         <View style={styles.mapWrap}>
           <LeafletMap ref={mapRef} zoom={12} height={270} onMapClick={handleMapClick} />

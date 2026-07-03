@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ScrollView, ActivityIndicator, Alert,
+  ScrollView, ActivityIndicator, Alert, TextInput,
 } from 'react-native';
 import { doc, getDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { supabase } from '../../lib/supabase';
+import { generateCoachingMessage } from '../../hooks/useCoaching';
 import { useAuth } from '../../context/AuthContext';
 import { splitFare } from '../../utils/pricing';
 import { useTheme } from '../../context/SettingsContext';
@@ -20,6 +21,7 @@ export default function TripSummaryScreen({ navigation, route }) {
 
   const [ride, setRide] = useState(null);
   const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [badgeVisible, setBadgeVisible] = useState(false);
@@ -100,6 +102,35 @@ export default function TripSummaryScreen({ navigation, route }) {
         cancellation_fee: 0,
       }, { onConflict: 'id' }).then(() => {});
 
+      // Save review (always, even without a comment)
+      supabase.from('reviews').insert({
+        ride_id: rideId,
+        driver_id: ride.driverId,
+        passenger_id: user.uid,
+        passenger_name: userProfile?.name,
+        rating: rating > 0 ? rating : null,
+        comment: comment.trim() || null,
+      }).then(() => {});
+
+      // Update passenger streak
+      const today = new Date().toISOString().split('T')[0];
+      supabase.from('profiles').select('current_streak, longest_streak, last_ride_date').eq('id', user.uid).single()
+        .then(({ data: p }) => {
+          if (!p) return;
+          const last = p.last_ride_date;
+          const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          let newStreak = 1;
+          if (last === today) return; // already counted today
+          if (last === yesterdayStr) newStreak = (p.current_streak ?? 0) + 1;
+          const newLongest = Math.max(p.longest_streak ?? 0, newStreak);
+          supabase.from('profiles').update({ current_streak: newStreak, longest_streak: newLongest, last_ride_date: today })
+            .eq('id', user.uid).then(() => {});
+        });
+
+      // Fire-and-forget coaching message from Claude
+      generateCoachingMessage(user.uid);
+
       if (newBadges > oldBadges) {
         setNewTripCount(newTotal);
         setBadgeVisible(true);
@@ -170,6 +201,15 @@ export default function TripSummaryScreen({ navigation, route }) {
             <View style={{ alignItems: 'center', marginVertical: 16 }}>
               <RatingStars rating={rating} onRate={setRating} size={44} />
             </View>
+            <TextInput
+              style={styles.commentInput}
+              placeholder={t('leaveComment') || 'Leave a comment (optional)'}
+              placeholderTextColor={colors.gray}
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              maxLength={200}
+            />
             <TouchableOpacity
               style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
               onPress={handleSubmit}
@@ -230,6 +270,7 @@ function makeStyles(colors, shadow) {
     fareAmount: { fontSize: 22, fontWeight: '800', color: colors.primary },
     ratingTitle: { fontSize: 18, fontWeight: '700', color: colors.dark, textAlign: 'center' },
     ratingDriverName: { fontSize: 14, color: colors.gray, textAlign: 'center', marginTop: 4 },
+    commentInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.dark, minHeight: 72, textAlignVertical: 'top', marginBottom: 14 },
     submitBtn: { backgroundColor: colors.primary, borderRadius: 12, padding: 14, alignItems: 'center' },
     submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     doneBtn: { backgroundColor: colors.white, borderRadius: 12, padding: 16, alignItems: 'center', ...shadow.sm },

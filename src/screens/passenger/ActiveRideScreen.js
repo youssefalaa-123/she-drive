@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Modal, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
@@ -9,6 +9,7 @@ import { db } from '../../firebase/config';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../context/SettingsContext';
 import { useAuth } from '../../context/AuthContext';
+import { useDriverReviews } from '../../hooks/useDriverReviews';
 import LeafletMap from '../../components/LeafletMap';
 import AnimatedPressable from '../../components/AnimatedPressable';
 
@@ -22,14 +23,22 @@ export default function ActiveRideScreen({ navigation, route }) {
 
   const [ride, setRide] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null);
+  const [showDriverProfile, setShowDriverProfile] = useState(false);
   const mapRef = useRef(null);
   const lastDriverPos = useRef(null);
+  const acceptedShownRef = useRef(false);
+
+  const { data: driverReviews } = useDriverReviews(ride?.driverId, 3);
 
   useEffect(() => {
     return onSnapshot(doc(db, 'rides', rideId), (snap) => {
       if (!snap.exists()) return;
       const data = { id: snap.id, ...snap.data() };
       setRide(data);
+      if (data.status === 'accepted' && !acceptedShownRef.current) {
+        acceptedShownRef.current = true;
+        setShowDriverProfile(true);
+      }
       if (data.status === 'completed') navigation.replace('TripSummary', { rideId });
       if (data.status === 'cancelled') {
         Alert.alert(t('rideCancelled'), t('driverCancelledTrip'));
@@ -109,6 +118,42 @@ export default function ActiveRideScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Driver profile modal shown on acceptance */}
+      <Modal visible={showDriverProfile} transparent animationType="slide">
+        <View style={styles.profileOverlay}>
+          <View style={styles.profileSheet}>
+            <View style={styles.profileHeader}>
+              <View style={styles.profileAvatar}><Text style={{ fontSize: 36 }}>👩</Text></View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.profileName}>{ride?.driverName || 'Your Driver'}</Text>
+                <Text style={styles.profileCar}>{ride?.driverCar || ''} {ride?.driverPlate ? `· ${ride.driverPlate}` : ''}</Text>
+                <View style={styles.profileStats}>
+                  <Text style={styles.statChip}>⭐ {ride?.driverRating?.toFixed(1) ?? '—'}</Text>
+                  <Text style={styles.statChip}>🚗 {ride?.driverTotalTrips ?? '—'} trips</Text>
+                </View>
+              </View>
+            </View>
+            {driverReviews && driverReviews.length > 0 && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={styles.reviewsTitle}>What passengers say</Text>
+                <ScrollView style={{ maxHeight: 180 }}>
+                  {driverReviews.map((r, i) => (
+                    <View key={i} style={styles.reviewItem}>
+                      <Text style={styles.reviewStars}>{'⭐'.repeat(r.rating)}</Text>
+                      <Text style={styles.reviewText}>{r.comment}</Text>
+                      <Text style={styles.reviewAuthor}>— {r.passenger_name || 'Passenger'}</Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+            <TouchableOpacity style={styles.profileClose} onPress={() => setShowDriverProfile(false)}>
+              <Text style={styles.profileCloseText}>Got it, thanks!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.mapWrap}>
         <LeafletMap
           ref={mapRef}
@@ -210,5 +255,21 @@ function makeStyles(colors, shadow) {
     tripText: { fontSize: 14, color: colors.dark, flex: 1 },
     cancelBtn: { marginHorizontal: 16, marginBottom: 20, alignItems: 'center' },
     cancelText: { color: colors.error, fontSize: 15, fontWeight: '600' },
+    // Driver profile modal
+    profileOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    profileSheet: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36 },
+    profileHeader: { flexDirection: 'row', alignItems: 'center' },
+    profileAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.primaryBg, justifyContent: 'center', alignItems: 'center' },
+    profileName: { fontSize: 18, fontWeight: '700', color: colors.dark },
+    profileCar: { fontSize: 13, color: colors.gray, marginTop: 2 },
+    profileStats: { flexDirection: 'row', gap: 8, marginTop: 6 },
+    statChip: { fontSize: 13, fontWeight: '600', color: colors.dark, backgroundColor: colors.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+    reviewsTitle: { fontSize: 14, fontWeight: '700', color: colors.dark, marginBottom: 10 },
+    reviewItem: { backgroundColor: colors.lightGray, borderRadius: 10, padding: 12, marginBottom: 8 },
+    reviewStars: { fontSize: 12, marginBottom: 4 },
+    reviewText: { fontSize: 13, color: colors.dark, lineHeight: 18 },
+    reviewAuthor: { fontSize: 11, color: colors.gray, marginTop: 4 },
+    profileClose: { backgroundColor: colors.primary, borderRadius: 14, padding: 14, alignItems: 'center', marginTop: 16 },
+    profileCloseText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   });
 }

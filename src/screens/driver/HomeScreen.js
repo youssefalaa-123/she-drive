@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
+import { generateDriverSummary } from '../../hooks/useCoaching';
 import { getDrivingRoute } from '../../utils/routing';
 import { useTheme } from '../../context/SettingsContext';
 import LeafletMap from '../../components/LeafletMap';
@@ -22,6 +23,10 @@ export default function DriverHomeScreen({ navigation }) {
 
   const [isOnline, setIsOnline] = useState(userProfile?.isOnline || false);
   const [incomingRide, setIncomingRide] = useState(null);
+  const [summaryVisible, setSummaryVisible] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
+  const [summaryPeriod, setSummaryPeriod] = useState('weekly');
   const [driverLocation, setDriverLocation] = useState(null);
   const [pickupRoute, setPickupRoute] = useState(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -148,6 +153,8 @@ export default function DriverHomeScreen({ navigation }) {
           driverName: userProfile.name,
           driverCar: `${userProfile.carColor} ${userProfile.carModel}`,
           driverPlate: userProfile.plateNumber,
+          driverRating: userProfile.rating ?? 0,
+          driverTotalTrips: userProfile.totalTrips ?? 0,
           acceptedAt: serverTimestamp(),
         });
       });
@@ -164,6 +171,21 @@ export default function DriverHomeScreen({ navigation }) {
     incomingRideRef.current = null;
     setIncomingRide(null);
     setPickupRoute(null);
+  };
+
+  const handleGetSummary = async (period) => {
+    setSummaryPeriod(period);
+    setSummaryLoading(true);
+    setSummaryVisible(true);
+    setSummaryData(null);
+    try {
+      const result = await generateDriverSummary(user.uid, period);
+      setSummaryData(result);
+    } catch (_) {
+      setSummaryData({ error: true });
+    } finally {
+      setSummaryLoading(false);
+    }
   };
 
   return (
@@ -243,7 +265,59 @@ export default function DriverHomeScreen({ navigation }) {
             <Text style={styles.statLabel}>{t('yourRating')}</Text>
           </View>
         </View>
+
+        <View style={styles.aiSection}>
+          <Text style={styles.aiTitle}>✨ AI Performance Report</Text>
+          <Text style={styles.aiSub}>Get a personalised summary powered by Claude</Text>
+          <View style={styles.aiRow}>
+            <TouchableOpacity style={styles.aiBtn} onPress={() => handleGetSummary('weekly')}>
+              <Text style={styles.aiBtnText}>📅 This Week</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.aiBtn} onPress={() => handleGetSummary('monthly')}>
+              <Text style={styles.aiBtnText}>🗓 This Month</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
+
+      {/* AI Summary Modal */}
+      <Modal visible={summaryVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.summarySheet}>
+            <Text style={styles.summaryTitle}>
+              {summaryPeriod === 'weekly' ? '📅 Weekly' : '🗓 Monthly'} Performance Report
+            </Text>
+            {summaryLoading && (
+              <View style={{ alignItems: 'center', padding: 32 }}>
+                <Text style={{ fontSize: 24, marginBottom: 12 }}>🤖</Text>
+                <Text style={{ color: colors.gray, fontSize: 14 }}>Claude is analysing your trips…</Text>
+              </View>
+            )}
+            {!summaryLoading && summaryData?.error && (
+              <Text style={{ color: colors.error, textAlign: 'center', padding: 20 }}>
+                Could not generate report. Please try again later.
+              </Text>
+            )}
+            {!summaryLoading && summaryData && !summaryData.error && (
+              <ScrollView style={{ maxHeight: 320 }}>
+                {summaryData.stats && (
+                  <View style={styles.summaryStatsRow}>
+                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.completed_rides}</Text><Text style={styles.summaryStatLabel}>Trips</Text></View>
+                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.total_earnings} EGP</Text><Text style={styles.summaryStatLabel}>Earned</Text></View>
+                    <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.avg_rating ?? '—'}</Text><Text style={styles.summaryStatLabel}>Avg Rating</Text></View>
+                  </View>
+                )}
+                <View style={styles.summaryTextBox}>
+                  <Text style={styles.summaryText}>{summaryData.summary}</Text>
+                </View>
+              </ScrollView>
+            )}
+            <TouchableOpacity style={styles.summaryClose} onPress={() => setSummaryVisible(false)}>
+              <Text style={styles.summaryCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={!!incomingRide} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -339,5 +413,23 @@ function makeStyles(colors, shadow) {
     rejectText: { fontSize: 15, fontWeight: '700', color: colors.gray },
     acceptBtn: { flex: 2, backgroundColor: colors.primary, borderRadius: 14, padding: 16, alignItems: 'center' },
     acceptText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    // AI summary section
+    aiSection: { backgroundColor: colors.white, borderRadius: 16, padding: 16, marginTop: 16, ...shadow.md },
+    aiTitle: { fontSize: 16, fontWeight: '700', color: colors.dark },
+    aiSub: { fontSize: 12, color: colors.gray, marginTop: 2, marginBottom: 12 },
+    aiRow: { flexDirection: 'row', gap: 10 },
+    aiBtn: { flex: 1, backgroundColor: colors.primaryBg, borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.primary },
+    aiBtnText: { fontSize: 13, fontWeight: '600', color: colors.primary },
+    // Summary modal
+    summarySheet: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    summaryTitle: { fontSize: 18, fontWeight: '800', color: colors.dark, marginBottom: 16 },
+    summaryStatsRow: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: colors.primaryBg, borderRadius: 14, padding: 16, marginBottom: 14 },
+    summaryStat: { alignItems: 'center' },
+    summaryStatNum: { fontSize: 18, fontWeight: '800', color: colors.primary },
+    summaryStatLabel: { fontSize: 11, color: colors.gray, marginTop: 2 },
+    summaryTextBox: { backgroundColor: colors.lightGray, borderRadius: 12, padding: 16 },
+    summaryText: { fontSize: 14, color: colors.dark, lineHeight: 22 },
+    summaryClose: { backgroundColor: colors.primary, borderRadius: 14, padding: 14, alignItems: 'center', marginTop: 16 },
+    summaryCloseText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   });
 }
