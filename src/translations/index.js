@@ -261,6 +261,9 @@ const strings = {
     earnedLabel: 'Earned',
     avgRatingLabel: 'Avg Rating',
     closeBtn: 'Close',
+    viewFullReport: 'View Full Report',
+    recenterMap: 'Re-center',
+    driverArriving: 'Driver arriving in',
 
     // Phone & pickup note
     copyNumber: 'Copy',
@@ -617,6 +620,9 @@ const strings = {
     earnedLabel: 'مكتسب',
     avgRatingLabel: 'متوسط التقييم',
     closeBtn: 'إغلاق',
+    viewFullReport: 'عرض التقرير الكامل',
+    recenterMap: 'إعادة التمركز',
+    driverArriving: 'السائقة تصل في',
 
     // Phone & pickup note
     copyNumber: 'نسخ',

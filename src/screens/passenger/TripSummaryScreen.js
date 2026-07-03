@@ -216,25 +216,30 @@ export default function TripSummaryScreen({ navigation, route }) {
               multiline
               maxLength={200}
             />
-            <TouchableOpacity
-              style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.submitText}>{rating === 0 ? t('skipFinish') : t('submitRating')}</Text>
-              }
-            </TouchableOpacity>
           </View>
         )}
-
-        {submitted && !badgeVisible && (
+      </ScrollView>
+      {!submitted && (
+        <View style={styles.stickyFooter}>
+          <TouchableOpacity
+            style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+            onPress={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.submitText}>{rating === 0 ? t('skipFinish') : t('submitRating')}</Text>
+            }
+          </TouchableOpacity>
+        </View>
+      )}
+      {submitted && !badgeVisible && (
+        <View style={styles.stickyFooter}>
           <TouchableOpacity style={styles.doneBtn} onPress={handleDone}>
             <Text style={styles.doneText}>{t('backToHome')}</Text>
           </TouchableOpacity>
-        )}
-      </ScrollView>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -281,5 +286,6 @@ function makeStyles(colors, shadow) {
     submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     doneBtn: { backgroundColor: colors.white, borderRadius: 12, padding: 16, alignItems: 'center', ...shadow.sm },
     doneText: { color: colors.primary, fontSize: 16, fontWeight: '700' },
+    stickyFooter: { paddingHorizontal: 20, paddingBottom: 20, paddingTop: 10, backgroundColor: colors.primaryBg, borderTopWidth: 1, borderTopColor: colors.border },
   });
 }

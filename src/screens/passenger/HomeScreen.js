@@ -120,6 +120,20 @@ export default function HomeScreen({ navigation }) {
   }, [destination?.lat, destination?.lng]);
 
   useEffect(() => {
+    const q = query(
+      collection(db, 'users'),
+      where('role', '==', 'driver'),
+      where('isOnline', '==', true)
+    );
+    return onSnapshot(q, (snap) => {
+      const cars = snap.docs
+        .filter(d => d.data().currentLat && d.data().currentLng)
+        .map(d => ({ id: d.id, lat: d.data().currentLat, lng: d.data().currentLng, name: d.data().name }));
+      mapRef.current?.setCars(cars);
+    });
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     const q = query(
       collection(db, 'rides'),

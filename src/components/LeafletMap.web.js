@@ -23,14 +23,22 @@ const buildHTML = (mapId, lat, lng, zoom) => `<!DOCTYPE html>
       display:flex;align-items:center;justify-content:center;
       color:#fff;font-size:11px;font-weight:bold;
       box-shadow:0 2px 8px rgba(0,0,0,.35);line-height:1;cursor:pointer}
+  #recenterBtn{position:absolute;bottom:84px;right:10px;z-index:1000;width:42px;height:42px;border-radius:50%;background:white;border:2px solid rgba(0,0,0,.15);cursor:pointer;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;padding:0}
+  #stepBox{position:absolute;top:10px;left:10px;right:10px;z-index:1000;background:rgba(26,26,46,0.92);border-radius:12px;padding:10px 14px;display:none;flex-direction:row;align-items:center;gap:10px}
+  #stepIcon{font-size:22px;min-width:28px;text-align:center}
+  #stepInfo{flex:1}
+  #stepText{color:#fff;font-size:13px;font-weight:600;margin:0}
+  #stepDist{color:rgba(255,255,255,.7);font-size:11px;margin-top:2px}
 </style>
 </head>
 <body>
 <div id="map"></div>
+<button id="recenterBtn" title="Re-center">⊙</button>
+<div id="stepBox"><span id="stepIcon">⬆️</span><div id="stepInfo"><p id="stepText"></p><p id="stepDist"></p></div></div>
 <script>
 var MAP_ID='${mapId}';
-var COLORS={pickup:'#22C55E',dest:'#C2185B',driver:'#1A1A2E',me:'#3B82F6',default:'#6B7280'};
-var LABELS={pickup:'P',dest:'D',driver:'\\u25B2',me:'\\u25CF',default:'\\u00B7'};
+var COLORS={pickup:'#22C55E',dest:'#C2185B',driver:'#1A1A2E',me:'#3B82F6',car:'#F59E0B',default:'#6B7280'};
+var LABELS={pickup:'P',dest:'D',driver:'\\u25B2',me:'\\u25CF',car:'🚗',default:'\\u00B7'};
 
 var map=L.map('map',{zoomControl:true}).setView([${lat},${lng}],${zoom});
 L.tileLayer('${TILE_URL}',{
@@ -40,12 +48,22 @@ L.tileLayer('${TILE_URL}',{
 
 var markers={};
 var routeLayer=null;
+var currentPos=null;
+
+document.getElementById('recenterBtn').addEventListener('click',function(){
+  if(currentPos) map.setView([currentPos.lat,currentPos.lng],16);
+  parent.postMessage({mapId:MAP_ID,type:'RECENTER_PRESSED'},'*');
+});
 
 function makeIcon(type){
   var c=COLORS[type]||COLORS.default;
   var l=LABELS[type]||LABELS.default;
   var html='<div class="lm" style="background:'+c+'">'+l+'</div>';
   return L.divIcon({html:html,className:'',iconSize:[30,30],iconAnchor:[15,15]});
+}
+
+function makeCarIcon(){
+  return L.divIcon({html:'<div style="font-size:20px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">🚗</div>',className:'',iconSize:[26,26],iconAnchor:[13,13]});
 }
 
 window.addEventListener('message',function(e){
@@ -80,6 +98,26 @@ window.addEventListener('message',function(e){
       if(m.extra)m.extra.forEach(function(p){pts.push(L.latLng(p[0],p[1]));});
       if(pts.length){var b=L.latLngBounds(pts);if(b.isValid())map.fitBounds(b,{padding:[60,60]});}
       break;
+    case 'SET_CURRENT_POS':
+      currentPos={lat:m.lat,lng:m.lng};
+      break;
+    case 'SHOW_STEP':
+      var sb=document.getElementById('stepBox');
+      sb.style.display='flex';
+      document.getElementById('stepIcon').textContent=m.icon||'⬆️';
+      document.getElementById('stepText').textContent=m.text||'';
+      document.getElementById('stepDist').textContent=m.dist||'';
+      break;
+    case 'HIDE_STEP':
+      document.getElementById('stepBox').style.display='none';
+      break;
+    case 'SET_CARS':
+      Object.keys(markers).forEach(function(k){if(k.startsWith('car_')){markers[k].remove();delete markers[k];}});
+      (m.cars||[]).forEach(function(c){
+        markers['car_'+c.id]=L.marker([c.lat,c.lng],{icon:makeCarIcon()}).addTo(map);
+        if(c.name)markers['car_'+c.id].bindTooltip(c.name,{direction:'top',permanent:false});
+      });
+      break;
   }
 });
 
@@ -113,11 +151,14 @@ const LeafletMap = forwardRef(({
     iframeRef.current?.contentWindow?.postMessage({ ...msg, mapId }, '*');
   };
 
-  // Listen for clicks from the iframe
+  // Listen for clicks and recenter presses from the iframe
   useEffect(() => {
     const handler = (e) => {
-      if (e.data?.mapId !== mapId || e.data?.type !== 'CLICK') return;
-      onClickRef.current?.(e.data.lat, e.data.lng);
+      if (e.data?.mapId !== mapId) return;
+      if (e.data?.type === 'CLICK') {
+        onClickRef.current?.(e.data.lat, e.data.lng);
+      }
+      if (e.data?.type === 'RECENTER_PRESSED') { /* no-op for now, just re-emit */ }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
@@ -136,16 +177,19 @@ const LeafletMap = forwardRef(({
       try {
         const coords = `${fromLng},${fromLat};${toLng},${toLat}`;
         const res = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`,
+          `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=true`,
           { headers: { 'User-Agent': 'SheDriveApp/1.0' } }
         );
         const data = await res.json();
         if (data.code !== 'Ok' || !data.routes?.length) return;
         const route = data.routes[0];
         send({ type: 'DRAW_ROUTE', geometry: route.geometry });
+        const legs = data.routes[0].legs || [];
+        const steps = legs.flatMap(function(l){ return l.steps || []; });
         onResult?.({
           distanceKm: Math.round((route.distance / 1000) * 10) / 10,
           durationMins: Math.ceil(route.duration / 60),
+          steps,
         });
       } catch (err) {
         console.warn('OSRM route error:', err);
@@ -157,6 +201,14 @@ const LeafletMap = forwardRef(({
     setView(lat, lng, z) { send({ type: 'SET_VIEW', lat, lng, zoom: z }); },
 
     fit(extra) { send({ type: 'FIT', extra }); },
+
+    setCars(drivers) { send({ type: 'SET_CARS', cars: drivers }); },
+
+    showStep(icon, text, dist) { send({ type: 'SHOW_STEP', icon, text, dist }); },
+
+    hideStep() { send({ type: 'HIDE_STEP' }); },
+
+    setCurrentPos(lat, lng) { send({ type: 'SET_CURRENT_POS', lat, lng }); },
 
     // Legacy stubs
     drawLine() {},

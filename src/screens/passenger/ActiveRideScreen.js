@@ -229,6 +229,7 @@ export default function ActiveRideScreen({ navigation, route }) {
         )}
       </View>
 
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
       <View style={styles.stepsRow}>
         {STATUS_STEPS.map((s, i) => (
           <View key={s} style={styles.stepItem}>
@@ -296,6 +297,7 @@ export default function ActiveRideScreen({ navigation, route }) {
           <Text style={styles.cancelText}>{t('cancelRide')}</Text>
         </AnimatedPressable>
       )}
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -33,6 +33,8 @@ export default function DriverHomeScreen({ navigation }) {
   const mapRef = useRef(null);
   const watchRef = useRef(null);
   const incomingRideRef = useRef(null);
+  const lastLocFirestoreRef = useRef(0);
+  const autoReportShownRef = useRef(false);
 
   useEffect(() => {
     if (isOnline) {
@@ -54,6 +56,11 @@ export default function DriverHomeScreen({ navigation }) {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setDriverLocation(loc);
         mapRef.current?.setMarker('me', loc.lat, loc.lng, 'me', 'You');
+        const now2 = Date.now();
+        if (now2 - lastLocFirestoreRef.current >= 5000) {
+          lastLocFirestoreRef.current = now2;
+          updateDoc(doc(db, 'users', user.uid), { currentLat: loc.lat, currentLng: loc.lng }).catch(() => {});
+        }
       },
       null,
       { enableHighAccuracy: true, maximumAge: 5000 }
@@ -105,6 +112,32 @@ export default function DriverHomeScreen({ navigation }) {
     });
   }, [user]);
 
+  useEffect(() => {
+    if (!user || autoReportShownRef.current) return;
+    autoReportShownRef.current = true;
+    import('../../lib/supabase').then(({ supabase }) => {
+      supabase.from('driver_summaries')
+        .select('*').eq('driver_id', user.uid).eq('period_type', 'weekly')
+        .order('created_at', { ascending: false }).limit(1)
+        .then(({ data }) => {
+          if (data && data[0]) {
+            const ageMs = Date.now() - new Date(data[0].created_at).getTime();
+            if (ageMs < 7 * 24 * 60 * 60 * 1000) {
+              setSummaryData({ summary: data[0].summary, stats: data[0].stats });
+              setSummaryPeriod('weekly');
+              return;
+            }
+          }
+          generateDriverSummary(user.uid, 'weekly').then(result => {
+            if (result && !result.error) {
+              setSummaryData(result);
+              setSummaryPeriod('weekly');
+            }
+          }).catch(() => {});
+        });
+    });
+  }, [user]);
+
   const DEBT_LIMIT = -300;
 
   const toggleOnline = async () => {
@@ -137,7 +170,12 @@ export default function DriverHomeScreen({ navigation }) {
     }
     setIsOnline(next);
     if (!next) { setIncomingRide(null); setPickupRoute(null); }
-    try { await updateDoc(doc(db, 'users', user.uid), { isOnline: next }); } catch (_) {}
+    try {
+    await updateDoc(doc(db, 'users', user.uid), {
+      isOnline: next,
+      ...(next ? {} : { currentLat: null, currentLng: null })
+    });
+  } catch (_) {}
   };
 
   const acceptRide = async () => {
@@ -195,7 +233,7 @@ export default function DriverHomeScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello, {userProfile?.name?.split(' ')[0]} 👋</Text>
+            <Text style={styles.greeting}>{t('hello')} {userProfile?.name?.split(' ')[0]} 👋</Text>
             <Text style={styles.greetingSub}>{isOnline ? t('online') + ' — ' + t('goOnlineSub') : t('goOnlineSub')}</Text>
           </View>
           <View style={styles.walletPill}>
@@ -270,15 +308,33 @@ export default function DriverHomeScreen({ navigation }) {
 
         <View style={styles.aiSection}>
           <Text style={styles.aiTitle}>{t('aiReportTitle')}</Text>
-          <Text style={styles.aiSub}>{t('aiReportSub')}</Text>
-          <View style={styles.aiRow}>
-            <TouchableOpacity style={styles.aiBtn} onPress={() => handleGetSummary('weekly')}>
-              <Text style={styles.aiBtnText}>{t('thisWeek')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.aiBtn} onPress={() => handleGetSummary('monthly')}>
-              <Text style={styles.aiBtnText}>{t('thisMonth')}</Text>
-            </TouchableOpacity>
-          </View>
+          {summaryData && !summaryData.error ? (
+            <>
+              {summaryData.stats && (
+                <View style={styles.summaryStatsRow}>
+                  <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.completed_rides}</Text><Text style={styles.summaryStatLabel}>{t('tripsLabel')}</Text></View>
+                  <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.total_earnings} {t('egp')}</Text><Text style={styles.summaryStatLabel}>{t('earnedLabel')}</Text></View>
+                  <View style={styles.summaryStat}><Text style={styles.summaryStatNum}>{summaryData.stats.avg_rating ?? '—'}</Text><Text style={styles.summaryStatLabel}>{t('avgRatingLabel')}</Text></View>
+                </View>
+              )}
+              <Text style={styles.autoSummaryText} numberOfLines={4}>{summaryData.summary}</Text>
+              <TouchableOpacity style={styles.viewFullBtn} onPress={() => setSummaryVisible(true)}>
+                <Text style={styles.viewFullText}>{t('viewFullReport')}</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.aiSub}>{t('aiReportSub')}</Text>
+              <View style={styles.aiRow}>
+                <TouchableOpacity style={styles.aiBtn} onPress={() => handleGetSummary('weekly')}>
+                  <Text style={styles.aiBtnText}>{t('thisWeek')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.aiBtn} onPress={() => handleGetSummary('monthly')}>
+                  <Text style={styles.aiBtnText}>{t('thisMonth')}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -440,5 +496,8 @@ function makeStyles(colors, shadow) {
     summaryText: { fontSize: 14, color: colors.dark, lineHeight: 22 },
     summaryClose: { backgroundColor: colors.primary, borderRadius: 14, padding: 14, alignItems: 'center', marginTop: 16 },
     summaryCloseText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    autoSummaryText: { fontSize: 13, color: colors.gray, lineHeight: 20, marginTop: 8, marginBottom: 10 },
+    viewFullBtn: { backgroundColor: colors.primary, borderRadius: 10, padding: 10, alignItems: 'center' },
+    viewFullText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   });
 }

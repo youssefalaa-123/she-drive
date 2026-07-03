@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  Alert, ActivityIndicator, Modal, Image,
+  Alert, ActivityIndicator, Modal, Image, ScrollView,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,39 @@ import { splitFare } from '../../utils/pricing';
 import { useTheme } from '../../context/SettingsContext';
 import LeafletMap from '../../components/LeafletMap';
 import AnimatedPressable from '../../components/AnimatedPressable';
+
+function maneuverEmoji(step) {
+  if (!step) return '⬆️';
+  const type = step.maneuver?.type || '';
+  const mod = step.maneuver?.modifier || '';
+  if (type === 'arrive') return '🏁';
+  if (type === 'depart') return '🚀';
+  if (type === 'roundabout' || type === 'rotary') return '🔄';
+  if (mod === 'left' || mod === 'sharp left') return '⬅️';
+  if (mod === 'right' || mod === 'sharp right') return '➡️';
+  if (mod === 'slight left') return '↖️';
+  if (mod === 'slight right') return '↗️';
+  if (mod === 'uturn') return '↩️';
+  return '⬆️';
+}
+function maneuverText(step) {
+  if (!step) return '';
+  const type = step.maneuver?.type || '';
+  const mod = step.maneuver?.modifier || '';
+  const name = step.name || '';
+  if (type === 'arrive') return name ? `Arrive at ${name}` : 'You have arrived';
+  if (type === 'depart') return name ? `Head towards ${name}` : 'Start driving';
+  if (mod === 'left') return name ? `Turn left onto ${name}` : 'Turn left';
+  if (mod === 'right') return name ? `Turn right onto ${name}` : 'Turn right';
+  if (mod === 'slight left') return name ? `Keep left onto ${name}` : 'Keep left';
+  if (mod === 'slight right') return name ? `Keep right onto ${name}` : 'Keep right';
+  if (mod === 'straight') return name ? `Continue on ${name}` : 'Continue straight';
+  return name ? `Continue on ${name}` : 'Continue ahead';
+}
+function fmtStepDist(meters) {
+  if (!meters) return '';
+  return meters < 1000 ? `${Math.round(meters)} m` : `${(meters/1000).toFixed(1)} km`;
+}
 
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -29,6 +62,8 @@ export default function ActiveTripScreen({ navigation, route }) {
   const [ride, setRide] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [driverLoc, setDriverLoc] = useState(null);
+  const [navSteps, setNavSteps] = useState([]);
+  const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const mapRef = useRef(null);
   const watchRef = useRef(null);
   const lastFirestoreRef = useRef(0);
@@ -70,13 +105,26 @@ export default function ActiveTripScreen({ navigation, route }) {
         const { latitude: lat, longitude: lng } = pos.coords;
         setDriverLoc({ lat, lng });
         mapRef.current?.setMarker('driver', lat, lng, 'driver', 'You');
+        mapRef.current?.setCurrentPos(lat, lng);
+        if (navSteps.length > 0) {
+          const next = navSteps[currentStepIdx];
+          if (next?.maneuver?.location) {
+            const [sLng, sLat] = next.maneuver.location;
+            const dLat2 = Math.abs(lat - sLat); const dLng2 = Math.abs(lng - sLng);
+            if (dLat2 < 0.0003 && dLng2 < 0.0003 && currentStepIdx < navSteps.length - 1) {
+              setCurrentStepIdx(idx => idx + 1);
+            }
+          }
+        }
         const now = Date.now();
         if (ride && now - lastRouteUpdateRef.current >= 15000) {
           lastRouteUpdateRef.current = now;
           const targetLat = ride.status === 'in_progress' ? ride.toLat : ride.fromLat;
           const targetLon = ride.status === 'in_progress' ? ride.toLon : ride.fromLon;
           if (targetLat && targetLon) {
-            mapRef.current?.showRoute(lat, lng, targetLat, targetLon);
+            mapRef.current?.showRoute(lat, lng, targetLat, targetLon, (info) => {
+              if (info?.steps?.length) { setNavSteps(info.steps); setCurrentStepIdx(0); }
+            });
             mapRef.current?.fit();
           }
         }
@@ -96,7 +144,9 @@ export default function ActiveTripScreen({ navigation, route }) {
     const targetLat = ride.status === 'in_progress' ? ride.toLat : ride.fromLat;
     const targetLon = ride.status === 'in_progress' ? ride.toLon : ride.fromLon;
     if (targetLat && targetLon) {
-      mapRef.current?.showRoute(driverLoc.lat, driverLoc.lng, targetLat, targetLon);
+      mapRef.current?.showRoute(driverLoc.lat, driverLoc.lng, targetLat, targetLon, (info) => {
+        if (info?.steps?.length) { setNavSteps(info.steps); setCurrentStepIdx(0); }
+      });
       mapRef.current?.fit();
       lastRouteUpdateRef.current = Date.now();
     }
@@ -198,8 +248,18 @@ export default function ActiveTripScreen({ navigation, route }) {
             </Text>
           </View>
         )}
+        {navSteps.length > 0 && navSteps[currentStepIdx] && (
+          <View style={styles.stepOverlay}>
+            <Text style={styles.stepIcon}>{maneuverEmoji(navSteps[currentStepIdx])}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.stepText} numberOfLines={2}>{maneuverText(navSteps[currentStepIdx])}</Text>
+              <Text style={styles.stepDist}>{fmtStepDist(navSteps[currentStepIdx].distance)}</Text>
+            </View>
+          </View>
+        )}
       </View>
 
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
       <View style={styles.passengerCard}>
         {ride.passengerPhotoUrl
           ? <Image source={{ uri: ride.passengerPhotoUrl }} style={styles.passengerAvatarImg} />
@@ -268,6 +328,7 @@ export default function ActiveTripScreen({ navigation, route }) {
           </TouchableOpacity>
         )}
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -302,7 +363,11 @@ function makeStyles(colors, shadow) {
     routeRow: { flexDirection: 'row', alignItems: 'center' },
     dot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
     routeText: { fontSize: 14, color: colors.dark, flex: 1 },
-    actionArea: { marginHorizontal: 16, marginBottom: 24 },
+    actionArea: { marginHorizontal: 16, marginTop: 4 },
+    stepOverlay: { position: 'absolute', top: 10, left: 10, right: 10, zIndex: 10, backgroundColor: 'rgba(26,26,46,0.9)', borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    stepIcon: { fontSize: 24, minWidth: 32, textAlign: 'center' },
+    stepText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    stepDist: { color: 'rgba(255,255,255,.7)', fontSize: 11, marginTop: 2 },
     actionBtn: { backgroundColor: colors.primary, borderRadius: 14, padding: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
     actionBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
