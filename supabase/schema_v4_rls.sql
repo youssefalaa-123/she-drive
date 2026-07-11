@@ -37,9 +37,8 @@ DROP POLICY IF EXISTS "summaries insert"  ON driver_summaries;
 
 -- ─── Unique review constraint (L-5) ─────────────────────────────────────────
 -- Prevents double-submission of a review for the same ride by the same passenger.
-ALTER TABLE reviews
-  ADD CONSTRAINT IF NOT EXISTS reviews_ride_passenger_unique
-  UNIQUE (ride_id, passenger_id);
+CREATE UNIQUE INDEX IF NOT EXISTS reviews_ride_passenger_unique
+  ON reviews (ride_id, passenger_id);
 
 -- ─── profiles ────────────────────────────────────────────────────────────────
 -- Own profile only.  Upsert from settle-ride uses service account (bypasses RLS).

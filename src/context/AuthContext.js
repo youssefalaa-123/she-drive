@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { supabase } from '../lib/supabase';
@@ -22,6 +22,10 @@ export function AuthProvider({ children }) {
       if (firebaseUser) {
         setUser(firebaseUser);
         setUserProfile(null); // clear stale profile while loading new one
+        // Establish Supabase session so RLS policies receive the Firebase UID
+        firebaseUser.getIdToken().then((idToken) => {
+          supabase.auth.signInWithIdToken({ provider: 'firebase', token: idToken }).catch(() => {});
+        });
 
         profileUnsub = onSnapshot(
           doc(db, 'users', firebaseUser.uid),
@@ -77,8 +81,10 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  const signOut = () => firebaseSignOut(auth);
+
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
