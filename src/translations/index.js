@@ -88,6 +88,8 @@ const strings = {
     walletBalance: 'Wallet Balance',
     walletShortNote: 'Wallet short by',
     payRestBy: 'Pay the rest by:',
+    confirmSplitPayment: 'Confirm Split Payment',
+    walletNotEnoughForSplit: 'Your wallet balance is too low to split with cash (minimum: platform fee). Top up or pay full cash.',
     confirmRide: 'Confirm Ride',
     findingDriver: 'Finding your driver…',
     cancelSearch: 'Cancel Search',
@@ -136,6 +138,8 @@ const strings = {
     myWallet: 'My Wallet',
     currentBalance: 'Current Balance',
     addFunds: 'Add Funds',
+    walletHistory: 'Wallet History',
+    noWalletHistory: 'No transactions yet',
     howWalletWorks: 'How Wallet Works',
     topUpToPay: '• Top up to pay for rides',
     firstTripDiscount: '• 15% off your very first trip',
@@ -200,6 +204,18 @@ const strings = {
     creditedWallet: '85% credited to wallet',
     commissionNote: 'Commission deductions are automatic',
     topUpWalletBtn: '+ Top Up Wallet',
+    withdrawFundsBtn: 'Withdraw Funds',
+    withdrawFunds: 'Withdraw Funds',
+    withdrawAmount: 'Amount to Withdraw',
+    withdrawMethod: 'Transfer Method',
+    bankCard: 'Bank Card',
+    vodafoneCash: 'Vodafone Cash',
+    accountDetails: 'Account / Phone Number',
+    withdrawSubmit: 'Submit Withdrawal Request',
+    withdrawSuccess: 'Withdrawal request submitted. Your funds will be transferred within 24 hours.',
+    withdrawMin: 'Minimum withdrawal amount is 50 EGP.',
+    withdrawMax: 'Amount exceeds your current balance.',
+    withdrawPending: 'Pending',
 
     // Settings
     appearance: 'Appearance',
@@ -242,8 +258,28 @@ const strings = {
     cashCollectedNote: 'Cash collected from passenger.\nCommission deducted from your wallet.',
     earningsAddedNote: 'Earnings added to your wallet.',
     iArrivedAtPickup: "I've Arrived at Pickup",
+    openInMaps: 'Open in Maps',
     startTrip: 'Start Trip',
     completeTrip: 'Complete Trip',
+    m: 'm',
+    noRatingsYet: 'No ratings yet',
+
+    // Turn-by-turn navigation
+    navArrive: 'You have arrived',
+    navArriveAt: 'Arrive at',
+    navDepart: 'Start driving',
+    navDepartTo: 'Head towards',
+    navTurnLeft: 'Turn left',
+    navTurnLeftOnto: 'Turn left onto',
+    navTurnRight: 'Turn right',
+    navTurnRightOnto: 'Turn right onto',
+    navKeepLeft: 'Keep left',
+    navKeepLeftOnto: 'Keep left onto',
+    navKeepRight: 'Keep right',
+    navKeepRightOnto: 'Keep right onto',
+    navContinue: 'Continue straight',
+    navContinueOn: 'Continue on',
+    navContinueAhead: 'Continue ahead',
 
     // AI Features
     leaveComment: 'Leave a comment (optional)',
@@ -262,6 +298,7 @@ const strings = {
     avgRatingLabel: 'Avg Rating',
     closeBtn: 'Close',
     viewFullReport: 'View Full Report',
+    passengerComments: '💬 Passenger Comments',
     recenterMap: 'Re-center',
     driverArriving: 'Driver arriving in',
 
@@ -272,6 +309,17 @@ const strings = {
     passengerPhone: "Passenger's Phone",
     pickupNotePlaceholder: 'Additional pickup info (e.g. near bus station)',
 
+    // Passenger Choice Matchmaking
+    choosingDriver: 'Choose Your Driver',
+    choosingDriverSub: 'Select before the timer runs out',
+    waitingDriversBid: 'Waiting for drivers to offer…',
+    selectDriver: 'Select',
+    bidPlaced: 'Offer Sent!',
+    waitingPassengerChoice: 'Waiting for passenger to choose…',
+    cancelBid: 'Cancel Offer',
+    offerToDrive: 'Offer to Drive',
+    notSelectedMsg: 'You were not selected for this trip.',
+
     // Cancel & re-search
     driverCancelConfirmMsg: 'Cancel this ride? No cancellation fee will be charged. We\'ll find a new driver automatically.',
     yesCancelDriverRide: 'Yes, Cancel',
@@ -280,6 +328,24 @@ const strings = {
     // Waiting timer
     waitingTimerLabel: 'Free wait:',
     waitingFeeApplied: '5-minute free wait exceeded. A 10 EGP waiting fee has been added to your fare.',
+
+    // SOS & Safety
+    emergencyHelp: '🆘 Emergency Help',
+    stayCalm: 'Stay calm. Help is available.',
+    callPolice: 'Police',
+    callAmbulance: 'Ambulance',
+    callFire: 'Fire Dept.',
+    copyTripInfo: 'Copy Trip Info to Share',
+    imSafeClose: "I'm Safe — Close",
+    tripInfoCopied: 'Trip info copied. Share it with someone you trust.',
+
+    // Share Ride
+    shareRide: 'Share My Ride',
+    shareRideCopied: 'Ride details copied. Paste to send to someone you trust.',
+
+    // Network
+    backOnline: '✓ Back online',
+    noInternet: 'No internet connection — check your network',
 
     // Rate from history
     rateNow: 'Rate Now',
@@ -334,6 +400,8 @@ const strings = {
     networkError: 'No internet connection. Check your network.',
     noSheDriveAccount: 'No She Drive account found with this email address.',
     resetFailed: 'Something went wrong. Please try again.',
+    invalidEmail: 'Invalid Email',
+    invalidEmailMsg: 'Please enter a valid email address.',
     enterValidEmail: 'Please enter a valid email address.',
     enterEmailAndPassword: 'Please enter your email or phone number and password.',
     invalidPhone: 'Invalid Phone',
@@ -351,6 +419,28 @@ const strings = {
     backArrow: '← Back',
     fillAllFieldsMsg: 'Please fill in all fields.',
     submissionFailed: 'Could not complete submission. Please try again.',
+
+    // AI fallback
+    aiUnavailableLocalStats: 'AI analysis unavailable. Showing your stats from local data.',
+
+    // Admin Dashboard
+    adminDashboard: 'Admin Dashboard',
+    adminWalletBalance: 'Admin Wallet Balance',
+    totalDriverDebt: 'Pending driver commissions',
+    owed: 'owed',
+    adminTab_wallet: 'Wallet',
+    adminTab_reviews: 'Reviews',
+    adminTab_drivers: 'Drivers',
+    adminCommissionHistory: 'Commission Overview',
+    adminWalletNote: 'This wallet accumulates 15% commission from every completed trip. Cash trips show as pending until drivers top up.',
+    earned: 'total earned',
+    pendingCollection: 'pending (driver debt)',
+    passengerReviews: 'Passenger Reviews',
+    noReviews: 'No reviews yet.',
+    noComment: 'No comment left.',
+    driverCommissions: 'Driver Commissions',
+    noDrivers: 'No approved drivers found.',
+    owes: 'Owes',
 
     // Policy text
     privacyPolicyText: 'Privacy Policy — She Drive\n\nLast updated: July 2026\n\n1. Information We Collect\nWe collect personal information you provide when registering, including your name, email address, phone number, and location data during active trips only.\n\n2. How We Use Your Information\n• To match passengers with nearby female drivers\n• To process payments and maintain wallet balances\n• To improve our services and safety features\n• To communicate service updates and support messages\n\n3. Data Sharing\nWe do not sell your personal data to any third party. Trip details are shared only between the passenger and driver involved in that specific ride.\n\n4. Location Data\nLocation is collected only while the app is in use during an active trip. Tracking stops automatically when the trip ends.\n\n5. Payment Security\nCard numbers are never fully stored on our servers. Only the last 4 digits and expiry date are saved for your reference. CVV is never stored.\n\n6. Data Retention\nAccount data is retained while your account is active. You may request full deletion by contacting our support team.\n\n7. Children\'s Privacy\nShe Drive is intended for users aged 18 and above only. We do not knowingly collect data from minors.\n\n8. Your Rights\nYou may request access to, correction of, or deletion of your personal data at any time by contacting us at shedrive.eg.app@gmail.com.\n\n9. Contact Us\nFor any privacy concerns: shedrive.eg.app@gmail.com',
@@ -447,6 +537,8 @@ const strings = {
     walletBalance: 'رصيد المحفظة',
     walletShortNote: 'المحفظة تنقصها',
     payRestBy: 'ادفعي الباقي بـ:',
+    confirmSplitPayment: 'تأكيد الدفع المقسّم',
+    walletNotEnoughForSplit: 'رصيد محفظتكِ منخفض جداً للتقسيم مع النقد. اشحني المحفظة أو ادفعي نقداً كاملاً.',
     confirmRide: 'تأكيد الرحلة',
     findingDriver: 'جاري البحث عن سائقة…',
     cancelSearch: 'إلغاء البحث',
@@ -495,6 +587,8 @@ const strings = {
     myWallet: 'محفظتي',
     currentBalance: 'الرصيد الحالي',
     addFunds: 'إضافة رصيد',
+    walletHistory: 'سجل المحفظة',
+    noWalletHistory: 'لا توجد معاملات بعد',
     howWalletWorks: 'كيف تعمل المحفظة',
     topUpToPay: '• اشحني للدفع مقابل الرحلات',
     firstTripDiscount: '• خصم 15% على رحلتكِ الأولى',
@@ -559,6 +653,18 @@ const strings = {
     creditedWallet: 'إضافة 85% للمحفظة',
     commissionNote: 'تُخصم العمولة تلقائياً',
     topUpWalletBtn: '+ شحن المحفظة',
+    withdrawFundsBtn: 'سحب الرصيد',
+    withdrawFunds: 'سحب الرصيد',
+    withdrawAmount: 'المبلغ المراد سحبه',
+    withdrawMethod: 'طريقة التحويل',
+    bankCard: 'بطاقة بنكية',
+    vodafoneCash: 'فودافون كاش',
+    accountDetails: 'رقم الحساب / رقم الهاتف',
+    withdrawSubmit: 'إرسال طلب السحب',
+    withdrawSuccess: 'تم تقديم طلب السحب. سيتم تحويل الأموال خلال 24 ساعة.',
+    withdrawMin: 'الحد الأدنى للسحب هو 50 جنيه.',
+    withdrawMax: 'المبلغ يتجاوز رصيدك الحالي.',
+    withdrawPending: 'قيد التنفيذ',
 
     // Settings
     appearance: 'المظهر',
@@ -601,8 +707,28 @@ const strings = {
     cashCollectedNote: 'تم تحصيل النقود من الراكبة.\nتم خصم العمولة من محفظتك.',
     earningsAddedNote: 'تمت إضافة الأرباح إلى محفظتك.',
     iArrivedAtPickup: 'وصلت لنقطة الانطلاق',
+    openInMaps: 'فتح في الخرائط',
     startTrip: 'بدء الرحلة',
     completeTrip: 'إنهاء الرحلة',
+    m: 'م',
+    noRatingsYet: 'لا توجد تقييمات بعد',
+
+    // Turn-by-turn navigation
+    navArrive: 'وصلتِ إلى وجهتك',
+    navArriveAt: 'الوصول إلى',
+    navDepart: 'ابدئي القيادة',
+    navDepartTo: 'توجهي نحو',
+    navTurnLeft: 'انعطفي يساراً',
+    navTurnLeftOnto: 'انعطفي يساراً إلى',
+    navTurnRight: 'انعطفي يميناً',
+    navTurnRightOnto: 'انعطفي يميناً إلى',
+    navKeepLeft: 'استمري يساراً',
+    navKeepLeftOnto: 'استمري يساراً نحو',
+    navKeepRight: 'استمري يميناً',
+    navKeepRightOnto: 'استمري يميناً نحو',
+    navContinue: 'استمري مستقيمة',
+    navContinueOn: 'استمري على',
+    navContinueAhead: 'استمري للأمام',
 
     // AI Features
     leaveComment: 'اكتبي تعليقاً (اختياري)',
@@ -621,6 +747,7 @@ const strings = {
     avgRatingLabel: 'متوسط التقييم',
     closeBtn: 'إغلاق',
     viewFullReport: 'عرض التقرير الكامل',
+    passengerComments: '💬 تعليقات الراكبات',
     recenterMap: 'إعادة التمركز',
     driverArriving: 'السائقة تصل في',
 
@@ -631,6 +758,17 @@ const strings = {
     passengerPhone: 'رقم الراكبة',
     pickupNotePlaceholder: 'معلومات إضافية عن نقطة الانطلاق (مثال: بجانب المحطة)',
 
+    // Passenger Choice Matchmaking
+    choosingDriver: 'اختاري سائقتك',
+    choosingDriverSub: 'اختاري قبل انتهاء الوقت',
+    waitingDriversBid: 'في انتظار عروض السائقات…',
+    selectDriver: 'اختيار',
+    bidPlaced: 'تم إرسال العرض!',
+    waitingPassengerChoice: 'في انتظار اختيار الراكبة…',
+    cancelBid: 'إلغاء العرض',
+    offerToDrive: 'عرض القيادة',
+    notSelectedMsg: 'لم يتم اختيارك لهذه الرحلة.',
+
     // Cancel & re-search
     driverCancelConfirmMsg: 'إلغاء الرحلة؟ لن يتم خصم أي رسوم وسيتم البحث تلقائياً عن سائقة جديدة.',
     yesCancelDriverRide: 'نعم، إلغاء',
@@ -639,6 +777,24 @@ const strings = {
     // Waiting timer
     waitingTimerLabel: 'انتظار مجاني:',
     waitingFeeApplied: 'تجاوز وقت الانتظار 5 دقائق. تم إضافة رسوم انتظار 10 جنيه على الأجرة.',
+
+    // SOS & Safety
+    emergencyHelp: '🆘 مساعدة طارئة',
+    stayCalm: 'تحلّي بالهدوء. المساعدة متاحة.',
+    callPolice: 'الشرطة',
+    callAmbulance: 'الإسعاف',
+    callFire: 'الإطفاء',
+    copyTripInfo: 'نسخ معلومات الرحلة',
+    imSafeClose: 'أنا بأمان — إغلاق',
+    tripInfoCopied: 'تم نسخ معلومات الرحلة. شاركيها مع شخص تثقين به.',
+
+    // Share Ride
+    shareRide: 'مشاركة رحلتي',
+    shareRideCopied: 'تم نسخ تفاصيل الرحلة. الصقيها لإرسالها لمن تثقين به.',
+
+    // Network
+    backOnline: '✓ عاد الاتصال بالإنترنت',
+    noInternet: 'لا يوجد اتصال بالإنترنت',
 
     // Rate from history
     rateNow: 'قيّمي الآن',
@@ -693,6 +849,8 @@ const strings = {
     networkError: 'لا يوجد اتصال بالإنترنت. تحققي من شبكتك.',
     noSheDriveAccount: 'لا يوجد حساب شي درايف بهذا البريد الإلكتروني.',
     resetFailed: 'حدث خطأ ما. يرجى المحاولة مجدداً.',
+    invalidEmail: 'بريد إلكتروني غير صالح',
+    invalidEmailMsg: 'يرجى إدخال بريد إلكتروني صحيح.',
     enterValidEmail: 'يرجى إدخال بريد إلكتروني صحيح.',
     enterEmailAndPassword: 'يرجى إدخال بريدك الإلكتروني أو رقم هاتفك وكلمة المرور.',
     invalidPhone: 'رقم هاتف غير صالح',
@@ -710,6 +868,28 @@ const strings = {
     backArrow: '→ رجوع',
     fillAllFieldsMsg: 'يرجى ملء جميع الحقول.',
     submissionFailed: 'تعذّر إتمام الإرسال. يرجى المحاولة مجدداً.',
+
+    // AI fallback
+    aiUnavailableLocalStats: 'تحليل الذكاء الاصطناعي غير متاح. عرض إحصائياتك المحلية.',
+
+    // Admin Dashboard
+    adminDashboard: 'لوحة التحكم',
+    adminWalletBalance: 'رصيد محفظة الإدارة',
+    totalDriverDebt: 'عمولات السائقات المعلقة',
+    owed: 'مستحقة',
+    adminTab_wallet: 'المحفظة',
+    adminTab_reviews: 'التقييمات',
+    adminTab_drivers: 'السائقات',
+    adminCommissionHistory: 'نظرة عامة على العمولات',
+    adminWalletNote: 'تتراكم في هذه المحفظة عمولة 15% من كل رحلة مكتملة. رحلات النقد تظهر معلقة حتى يشحن السائقات محافظهن.',
+    earned: 'إجمالي المكتسب',
+    pendingCollection: 'معلق (دين السائقة)',
+    passengerReviews: 'تقييمات الراكبات',
+    noReviews: 'لا توجد تقييمات بعد.',
+    noComment: 'لم يترك تعليق.',
+    driverCommissions: 'عمولات السائقات',
+    noDrivers: 'لا توجد سائقات معتمدات.',
+    owes: 'مديونة',
 
     // Policy text (Arabic)
     privacyPolicyText: 'سياسة الخصوصية — شي درايف\n\nآخر تحديث: يوليو 2026\n\n1. المعلومات التي نجمعها\nنجمع المعلومات الشخصية التي تقدمينها عند التسجيل، بما في ذلك اسمك وعنوان بريدك الإلكتروني ورقم هاتفك وبيانات الموقع خلال الرحلات النشطة فقط.\n\n2. كيف نستخدم معلوماتك\n• لمطابقة الراكبات مع السائقات القريبات منهن\n• لمعالجة المدفوعات والحفاظ على أرصدة المحفظة\n• لتحسين خدماتنا وميزات السلامة\n• للتواصل بشأن تحديثات الخدمة ورسائل الدعم\n\n3. مشاركة البيانات\nلا نبيع بياناتك الشخصية لأي طرف ثالث. يتم مشاركة تفاصيل الرحلة فقط بين الراكبة والسائقة المشاركتين في تلك الرحلة المحددة.\n\n4. بيانات الموقع\nيتم جمع الموقع فقط أثناء استخدام التطبيق خلال رحلة نشطة. يتوقف التتبع تلقائياً عند انتهاء الرحلة.\n\n5. أمان الدفع\nلا يتم تخزين أرقام البطاقات كاملةً على خوادمنا. يتم حفظ آخر 4 أرقام وتاريخ الانتهاء فقط للرجوع إليها. لا يتم تخزين رمز CVV أبداً.\n\n6. الاحتفاظ بالبيانات\nيتم الاحتفاظ ببيانات الحساب طالما كان حسابك نشطاً. يمكنك طلب الحذف الكامل عن طريق التواصل مع فريق الدعم لدينا.\n\n7. خصوصية الأطفال\nشي درايف مخصصة للمستخدمات من عمر 18 عاماً فما فوق فقط. لا نجمع بيانات من القاصرات عن علم.\n\n8. حقوقك\nيمكنك طلب الوصول إلى بياناتك الشخصية أو تصحيحها أو حذفها في أي وقت عن طريق التواصل معنا على shedrive.eg.app@gmail.com.\n\n9. اتصلي بنا\nلأي مخاوف تتعلق بالخصوصية: shedrive.eg.app@gmail.com',

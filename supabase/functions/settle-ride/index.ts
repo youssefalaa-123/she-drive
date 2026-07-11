@@ -111,6 +111,18 @@ Deno.serve(async (req) => {
     const newTotal        = currentTrips + 1;
     const newBadges       = Math.floor(newTotal / 10);
 
+    // ── Verify wallet balance hasn't dropped since booking ─────────────────
+    // Protects against race conditions where another transaction depletes the
+    // wallet between ride booking and settlement.
+    if (walletPaid > 0) {
+      const liveBalance = (readField(passengerFields ?? {}, 'wallet') as number) || 0;
+      if (liveBalance < walletPaid - 0.01) {
+        return new Response(JSON.stringify({ error: 'Insufficient wallet balance' }), {
+          status: 402, headers: { 'Content-Type': 'application/json', ...cors },
+        });
+      }
+    }
+
     // ── Build Firestore write batch ────────────────────────────────────────
     const writes: Write[] = [];
     const histId = () => crypto.randomUUID();
@@ -149,18 +161,20 @@ Deno.serve(async (req) => {
       writes.push({ type: 'set', path: 'wallets/admin', fields: { balance: adminAmount }, merge: true });
 
     } else if (method === 'wallet+cash') {
+      // Booking-time validation prevents cashOrCardPaid > driverAmount (Sub-case B) for new rides.
+      // Reject server-side as a safety net — prevents a crafted request from debiting a driver's wallet.
+      if (driverId && cashOrCardPaid > driverAmount + 1) {
+        return new Response(JSON.stringify({ error: 'Invalid wallet+cash amounts: cash exceeds driver share. Please contact support.' }), {
+          status: 400, headers: { 'Content-Type': 'application/json', ...cors },
+        });
+      }
       writes.push({ type: 'increment', path: `users/${passengerId}`, field: 'wallet', amount: -walletPaid });
       writes.push({ type: 'set', path: `users/${passengerId}/walletHistory/${histId()}`, fields: { amount: -walletPaid, type: 'ride_payment', description: `Trip payment (wallet portion) · ${routeLabel}`, createdAt: new Date() } });
-      if (driverId) {
-        if (cashOrCardPaid < driverAmount) {
-          const topUp = driverAmount - cashOrCardPaid;
-          writes.push({ type: 'increment', path: `users/${driverId}`, field: 'wallet', amount: topUp });
-          writes.push({ type: 'set', path: `users/${driverId}/walletHistory/${histId()}`, fields: { amount: topUp, type: 'trip_earning', description: `Trip top-up (wallet+cash) · ${routeLabel}`, createdAt: new Date() } });
-        } else if (cashOrCardPaid > driverAmount) {
-          const surplus = cashOrCardPaid - driverAmount;
-          writes.push({ type: 'increment', path: `users/${driverId}`, field: 'wallet', amount: -surplus });
-          writes.push({ type: 'set', path: `users/${driverId}/walletHistory/${histId()}`, fields: { amount: -surplus, type: 'commission', description: `Surplus commission (wallet+cash) · ${routeLabel}`, createdAt: new Date() } });
-        }
+      if (driverId && cashOrCardPaid < driverAmount - 0.01) {
+        // Sub-case A: driver received less cash than their share — top up from platform
+        const topUp = Math.round((driverAmount - cashOrCardPaid) * 100) / 100;
+        writes.push({ type: 'increment', path: `users/${driverId}`, field: 'wallet', amount: topUp });
+        writes.push({ type: 'set', path: `users/${driverId}/walletHistory/${histId()}`, fields: { amount: topUp, type: 'trip_earning', description: `Trip top-up (wallet+cash) · ${routeLabel}`, createdAt: new Date() } });
       }
       writes.push({ type: 'set', path: 'wallets/admin', fields: { balance: adminAmount }, merge: true });
     }
