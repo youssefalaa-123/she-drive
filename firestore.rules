@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // ── User profiles ──────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isAuth();
+
+      // Create own profile during onboarding only
+      allow create: if isAuth() && isOwner(uid);
+
+      // Owner may update their own non-privileged fields.
+      // Blocked: role, approved, rejected (prevent self-elevation / self-approval).
+      // Blocked: wallet, rating, ratingCount (financial fields — server-side only).
+      allow update: if isAuth() && isOwner(uid)
+        && !request.resource.data.diff(resource.data)
+               .affectedKeys()
+               .hasAny(['role', 'approved', 'rejected', 'wallet', 'rating', 'ratingCount']);
+
+      // Cross-user: wallet / rating / ratingCount only.
+      // Required for client-side settlement during migration to settle-ride Edge Function.
+      // Remove this rule once settle-ride Edge Function is deployed to production.
+      allow update: if isAuth()
+        && request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(['wallet', 'rating', 'ratingCount']);
+
+      allow delete: if false;
+
+      // Wallet history: owner reads; owner writes own entries only.
+      // Cross-user walletHistory writes from TripSummaryScreen will fail silently
+      // (fire-and-forget) and will be handled server-side by the settle-ride Edge Function.
+      match /walletHistory/{docId} {
+        allow read:   if isAuth() && isOwner(uid);
+        allow create: if isAuth() && isOwner(uid);
+      }
+    }
+
+    // ── Rides ──────────────────────────────────────────────────────────────────
+    // Read:   scoped to the trip's passenger, the assigned driver, or any driver
+    //         viewing unassigned 'searching' rides.
+    // Create: passenger must embed their own uid as passengerId.
+    // Update: only the assigned passenger or driver; OR any driver claiming an
+    //         unassigned ride (driverId == null, status == 'searching').
+    match /rides/{rideId} {
+      allow read: if isAuth() && (
+        resource.data.passengerId == request.auth.uid ||
+        resource.data.driverId   == request.auth.uid ||
+        resource.data.status     == 'searching'
+      );
+
+      allow create: if isAuth()
+        && request.resource.data.passengerId == request.auth.uid;
+
+      allow update: if isAuth() && (
+        resource.data.passengerId == request.auth.uid ||
+        resource.data.driverId   == request.auth.uid ||
+        (resource.data.driverId == null && resource.data.status == 'searching')
+      );
+    }
+
+    // ── Admin wallet ───────────────────────────────────────────────────────────
+    // Read: any authenticated user (balance display in admin panel).
+    // Write: kept open during migration; set to `if false` once settle-ride
+    //        Edge Function is handling all settlement server-side.
+    match /wallets/admin {
+      allow read:  if isAuth();
+      allow write: if isAuth();
+    }
+  }
+}

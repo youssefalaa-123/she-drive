@@ -27,7 +27,7 @@ export default function PassengerOnboarding({ navigation }) {
     if (!name || !email || !digits || !password) { Alert.alert(t('missingFields'), t('fillAllFieldsMsg')); return; }
     if (!email.includes('@')) { Alert.alert(t('invalidEmail') || 'Invalid Email', t('invalidEmailMsg') || t('enterValidEmail')); return; }
     if (digits.length < 10) { Alert.alert(t('invalidPhone'), t('invalidPhoneMsg')); return; }
-    if (password.length < 6) { Alert.alert(t('weakPassword'), t('weakPasswordMsg')); return; }
+    if (password.length < 8) { Alert.alert(t('weakPassword'), t('weakPasswordMsg')); return; }
 
     setLoading(true);
     let cred = null;

@@ -68,7 +68,8 @@ export default function LoginScreen({ navigation }) {
       if (!input.includes('@')) {
         const digits = input.replace(/\D/g, '');
         const snap = await getDocs(query(collection(db, 'users'), where('phone', '==', digits)));
-        if (snap.empty) { Alert.alert(t('notFound'), t('noAccountPhone')); setLoading(false); return; }
+        // Use a generic error to avoid confirming whether a phone number is registered
+        if (snap.empty) { Alert.alert(t('signInFailed'), t('invalidCredential')); setLoading(false); return; }
         email = snap.docs[0].data().email;
       }
       await signInWithEmailAndPassword(auth, email, password);

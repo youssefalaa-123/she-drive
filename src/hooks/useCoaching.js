@@ -1,8 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { auth } from '../firebase/config';
 
-const SUPABASE_URL = 'https://loymslushwxzfkewereb.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IyUrUd774Phi68T01DLLqw_f-Hc1v7j';
+async function getFirebaseToken() {
+  try {
+    return (await auth.currentUser?.getIdToken()) ?? null;
+  } catch (_) {
+    return null;
+  }
+}
 
 // Latest unseen coaching message for this passenger
 export function useLatestCoaching(passengerId) {
@@ -32,7 +38,7 @@ export function useMarkCoachingSeen() {
     mutationFn: async (messageId) => {
       await supabase.from('coaching_messages').update({ seen: true }).eq('id', messageId);
     },
-    onSuccess: (_, __, ctx) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['coaching'] });
     },
   });
@@ -41,30 +47,25 @@ export function useMarkCoachingSeen() {
 // Call the Edge Function to generate a new coaching message
 export async function generateCoachingMessage(passengerId) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-coaching`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({ passenger_id: passengerId }),
+    const token = await getFirebaseToken();
+    if (!token) return null;
+    const { data } = await supabase.functions.invoke('generate-coaching', {
+      body: { passenger_id: passengerId },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    return await res.json();
+    return data;
   } catch (_) {
     return null;
   }
 }
 
-// Call the Edge Function to generate a driver summary
-export async function generateDriverSummary(driverId, periodType = 'weekly') {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-driver-summary`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ driver_id: driverId, period_type: periodType }),
+export async function generateDriverSummary(payload) {
+  const token = await getFirebaseToken();
+  if (!token) throw new Error('Not authenticated');
+  const { data, error } = await supabase.functions.invoke('generate-driver-summary', {
+    body: payload,
+    headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error('Failed to generate summary');
-  return await res.json();
+  if (error) throw new Error(error.message || 'Edge function error');
+  return data;
 }

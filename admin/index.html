@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>She Drive — Admin Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #C2185B;
+      --primary-dark: #880E4F;
+      --purple: #7B1FA2;
+      --sidebar-bg: #1A1A2E;
+      --sidebar-hover: rgba(255,255,255,0.08);
+      --sidebar-active: rgba(194,24,91,0.25);
+      --bg: #F4F6F9;
+      --card: #FFFFFF;
+      --border: #E5E7EB;
+      --text: #1F2937;
+      --text-muted: #6B7280;
+      --success: #10B981;
+      --error: #EF4444;
+      --warning: #F59E0B;
+      --info: #3B82F6;
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ─── Login ──────────────────────────────────────────────────────────── */
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #7B1FA2 0%, #C2185B 100%);
+    }
+    .login-box {
+      background: white; border-radius: 20px; padding: 40px; width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo h1 { font-size: 28px; font-weight: 800; color: var(--primary); }
+    .login-logo p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .login-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .form-group input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 15px; outline: none; transition: border-color .2s;
+    }
+    .form-group input:focus { border-color: var(--primary); }
+    .btn-primary {
+      width: 100%; padding: 14px; background: var(--primary); color: white;
+      border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: opacity .2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .error-msg { color: var(--error); font-size: 13px; margin-top: 12px; text-align: center; }
+    .setup-note {
+      margin-top: 20px; padding: 12px; background: #FFF8E1; border-radius: 8px;
+      font-size: 12px; color: #92600A; border: 1px solid #FFD54F; line-height: 1.6;
+    }
+
+    /* ─── App Shell ──────────────────────────────────────────────────────── */
+    #app-shell { display: none; min-height: 100vh; }
+    #app-shell.visible { display: flex; }
+
+    /* Sidebar */
+    #sidebar {
+      width: 240px; min-height: 100vh; background: var(--sidebar-bg);
+      display: flex; flex-direction: column; position: sticky; top: 0; flex-shrink: 0;
+    }
+    .sidebar-brand {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-brand h1 { color: white; font-size: 20px; font-weight: 800; }
+    .sidebar-brand p { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 3px; }
+    .sidebar-badge {
+      display: inline-block; background: var(--primary); color: white;
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 6px;
+    }
+    .nav-items { flex: 1; padding: 16px 10px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 11px 14px;
+      border-radius: 10px; cursor: pointer; color: rgba(255,255,255,0.65);
+      font-size: 14px; font-weight: 500; transition: all .15s; margin-bottom: 4px;
+      border: none; background: transparent; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: var(--sidebar-hover); color: white; }
+    .nav-item.active { background: var(--sidebar-active); color: white; font-weight: 700; }
+    .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+    .nav-badge {
+      margin-left: auto; background: var(--primary); color: white;
+      font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+    }
+    .sidebar-footer { padding: 16px 10px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .signout-btn {
+      display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+      border-radius: 10px; cursor: pointer; color: rgba(255,255,255,0.5);
+      font-size: 14px; border: none; background: transparent; width: 100%; transition: all .15s;
+    }
+    .signout-btn:hover { color: white; background: var(--sidebar-hover); }
+
+    /* Main content */
+    #main-content { flex: 1; padding: 32px; overflow-y: auto; }
+
+    /* Page header */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 24px; font-weight: 800; color: var(--text); }
+    .page-header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: white; border-radius: 14px; padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .stat-card .stat-icon { font-size: 24px; margin-bottom: 10px; }
+    .stat-card .stat-value { font-size: 28px; font-weight: 800; color: var(--text); }
+    .stat-card .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Driver cards (approval queue) */
+    .driver-card {
+      background: white; border-radius: 14px; padding: 20px; margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap;
+    }
+    .driver-card .avatar {
+      width: 68px; height: 68px; border-radius: 34px; overflow: hidden;
+      background: #F3E5F5; display: flex; align-items: center; justify-content: center;
+      font-size: 30px; flex-shrink: 0; border: 2px solid var(--border);
+    }
+    .driver-card .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .driver-info { flex: 1; min-width: 200px; }
+    .driver-info h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .driver-info p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      background: #F3E5F5; color: var(--purple); font-size: 12px;
+      padding: 3px 10px; border-radius: 20px; font-weight: 500;
+    }
+    .photo-link {
+      display: inline-block; margin-top: 10px; font-size: 13px; color: var(--primary);
+      text-decoration: none; font-weight: 600;
+    }
+    .photo-link:hover { text-decoration: underline; }
+    .driver-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+    .btn-approve {
+      padding: 9px 20px; background: var(--success); color: white;
+      border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-approve:hover { opacity: 0.85; }
+    .btn-reject {
+      padding: 9px 20px; background: transparent; color: var(--error);
+      border: 1.5px solid var(--error); border-radius: 8px; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-reject:hover { background: var(--error); color: white; }
+
+    /* Table */
+    .table-wrap { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #F9FAFB; }
+    th {
+      padding: 13px 16px; text-align: left; font-size: 12px; font-weight: 700;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #F3F4F6; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #FAFAFA; }
+    .cell-avatar {
+      width: 36px; height: 36px; border-radius: 18px; overflow: hidden;
+      background: #F3E5F5; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px; border: 1px solid var(--border); vertical-align: middle; margin-right: 10px;
+    }
+    .cell-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .cell-name { font-weight: 600; font-size: 14px; }
+    .cell-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+    .loading-cell { text-align: center; color: var(--text-muted); padding: 32px; }
+
+    /* Status badges */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; text-transform: capitalize;
+    }
+    .badge.approved { background: #D1FAE5; color: #065F46; }
+    .badge.pending  { background: #FEF3C7; color: #92600A; }
+    .badge.rejected { background: #FEE2E2; color: #991B1B; }
+    .badge.completed   { background: #D1FAE5; color: #065F46; }
+    .badge.searching   { background: #FEF3C7; color: #92600A; }
+    .badge.accepted    { background: #DBEAFE; color: #1E40AF; }
+    .badge.in_progress { background: #E0F2FE; color: #0C4A6E; }
+    .badge.cancelled   { background: #FEE2E2; color: #991B1B; }
+    .badge.arrived     { background: #EDE9FE; color: #5B21B6; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--text-muted);
+      font-size: 16px; background: white; border-radius: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 14px 20px;
+      border-radius: 10px; color: white; font-size: 14px; font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999;
+      animation: slideIn .2s ease;
+    }
+    .toast.success { background: var(--success); }
+    .toast.error   { background: var(--error); }
+    .toast.info    { background: var(--info); }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Rejection modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal {
+      background: white; border-radius: 16px; padding: 28px; width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+    .modal textarea {
+      width: 100%; padding: 12px; border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 14px; resize: vertical; min-height: 100px; outline: none;
+    }
+    .modal textarea:focus { border-color: var(--primary); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+    .btn-secondary {
+      padding: 9px 18px; background: transparent; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600;
+    }
+    .btn-danger {
+      padding: 9px 18px; background: var(--error); color: white;
+      border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 700;
+    }
+
+    /* Photo viewer modal */
+    .photo-modal-box {
+      background: white; border-radius: 20px; padding: 28px; width: 560px; max-width: 95vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .photo-modal-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .photo-modal-box .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .photo-grid-2x2 {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px;
+    }
+    .photo-grid-item { display: flex; flex-direction: column; gap: 6px; }
+    .photo-grid-item .photo-frame {
+      width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden;
+      background: #F3F4F6; border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .photo-grid-item .photo-frame img {
+      width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: opacity .15s;
+    }
+    .photo-grid-item .photo-frame img:hover { opacity: 0.85; }
+    .photo-grid-item .photo-frame .no-photo {
+      font-size: 32px; flex-direction: column; display: flex; align-items: center;
+      gap: 6px; color: var(--text-muted);
+    }
+    .photo-grid-item .photo-frame .no-photo span { font-size: 11px; }
+    .photo-grid-item .photo-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-align: center; }
+    .btn-view-photos {
+      padding: 6px 14px; background: transparent; color: var(--primary);
+      border: 1.5px solid var(--primary); border-radius: 8px; font-size: 12px;
+      font-weight: 700; cursor: pointer; transition: all .15s; margin-top: 10px;
+    }
+    .btn-view-photos:hover { background: var(--primary); color: white; }
+  </style>
+</head>
+<body>
+
+<!-- ─── Login Screen ─────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>🚗 She Drive</h1>
+      <p>Admin Dashboard</p>
+    </div>
+    <h2>Sign in</h2>
+    <form id="login-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="admin@shedrive.com" required />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" required />
+      </div>
+      <button type="submit" class="btn-primary" id="login-btn">Sign In</button>
+      <p class="error-msg" id="login-error"></p>
+    </form>
+    <div class="setup-note">
+      ⚙️ <strong>Setup:</strong> Copy <code>admin/env.example.js</code> to <code>admin/env.js</code> and fill in your credentials, then create a user in Firebase Auth and set <code>role: "admin"</code> in their Firestore document.
+    </div>
+  </div>
+</div>
+
+<!-- ─── App Shell ─────────────────────────────────────────────────────────── -->
+<div id="app-shell">
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-brand">
+      <h1>She Drive</h1>
+      <p>Admin Dashboard</p>
+      <span class="sidebar-badge">Admin</span>
+    </div>
+    <div class="nav-items">
+      <button class="nav-item active" data-tab="queue" onclick="loadTab('queue')">
+        <span class="icon">⏳</span> Driver Queue
+        <span class="nav-badge" id="queue-count">0</span>
+      </button>
+      <button class="nav-item" data-tab="drivers" onclick="loadTab('drivers')">
+        <span class="icon">🚗</span> All Drivers
+      </button>
+      <button class="nav-item" data-tab="passengers" onclick="loadTab('passengers')">
+        <span class="icon">👩</span> Passengers
+      </button>
+      <button class="nav-item" data-tab="trips" onclick="loadTab('trips')">
+        <span class="icon">📊</span> Trip History
+      </button>
+      <button class="nav-item" data-tab="feedbacks" onclick="loadTab('feedbacks')">
+        <span class="icon">💬</span> Feedbacks
+        <span class="nav-badge" id="feedbacks-count" style="display:none">0</span>
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <button class="signout-btn" id="signout-btn">
+        <span>🚪</span> Sign Out
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main id="main-content">
+    <div class="empty-state">Loading…</div>
+  </main>
+</div>
+
+<!-- Photo viewer modal -->
+<div class="modal-overlay" id="photo-modal" style="display:none" onclick="if(event.target===this)closePhotoModal()">
+  <div class="photo-modal-box">
+    <h3 id="photo-modal-name"></h3>
+    <p class="subtitle">Driver photos — click any photo to open full size</p>
+    <div class="photo-grid-2x2">
+      <div class="photo-grid-item">
+        <div class="photo-frame" id="pm-profile"></div>
+        <div class="photo-label">🤳 Profile Photo</div>
+      </div>
+      <div class="photo-grid-item">
+        <div class="photo-frame" id="pm-vehicle"></div>
+        <div class="photo-label">🚗 Vehicle Photo</div>
+      </div>
+      <div class="photo-grid-item">
+        <div class="photo-frame" id="pm-national"></div>
+        <div class="photo-label">🪪 National ID</div>
+      </div>
+      <div class="photo-grid-item">
+        <div class="photo-frame" id="pm-license"></div>
+        <div class="photo-label">📋 Driver's License</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <button class="btn-secondary" onclick="closePhotoModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rejection modal -->
+<div class="modal-overlay" id="reject-modal" style="display:none">
+  <div class="modal">
+    <h3>Reject Driver Application</h3>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:14px">Provide a reason (optional — will be visible to the driver).</p>
+    <textarea id="reject-reason" placeholder="e.g. Incomplete documents, expired license…"></textarea>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn-danger" onclick="confirmReject()">Reject</button>
+    </div>
+  </div>
+</div>
+
+<script src="env.js"></script>
+<script type="module">
+// ── FIREBASE CONFIG ────────────────────────────────────────────────────────
+if (!window.ADMIN_FIREBASE_CONFIG) {
+  document.body.innerHTML = '<p style="padding:40px;color:red;font-size:16px">&#9888; Missing env.js — copy admin/env.example.js to admin/env.js and fill in your credentials.</p>';
+  throw new Error('ADMIN_FIREBASE_CONFIG not set — see admin/env.example.js');
+}
+const firebaseConfig = window.ADMIN_FIREBASE_CONFIG;
+// ──────────────────────────────────────────────────────────────────────────
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js';
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+} from 'https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js';
+import {
+  getFirestore, collection, query, where, orderBy,
+  onSnapshot, doc, updateDoc, getDoc, serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js';
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let unsubs = [];
+let rejectTargetId = null;
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.exists() && snap.data().role === 'admin') {
+      document.getElementById('login-screen').style.display = 'none';
+      const shell = document.getElementById('app-shell');
+      shell.style.display = 'flex';
+      shell.classList.add('visible');
+      loadTab('queue');
+    } else {
+      document.getElementById('login-error').textContent = 'Access denied — not an admin account.';
+      await signOut(auth);
+    }
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-shell').style.display = 'none';
+  }
+});
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  document.getElementById('login-error').textContent = '';
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      document.getElementById('login-email').value,
+      document.getElementById('login-password').value
+    );
+  } catch (err) {
+    document.getElementById('login-error').textContent = err.message;
+  } finally {
+    btn.innerHTML = 'Sign In';
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('signout-btn').addEventListener('click', () => signOut(auth));
+
+// ── TAB ROUTING ───────────────────────────────────────────────────────────
+window.loadTab = function(tab) {
+  unsubs.forEach(u => u());
+  unsubs = [];
+
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+
+  const content = document.getElementById('main-content');
+  if (tab === 'queue')           renderQueue(content);
+  else if (tab === 'drivers')    renderDrivers(content);
+  else if (tab === 'passengers') renderPassengers(content);
+  else if (tab === 'trips')      renderTrips(content);
+  else if (tab === 'feedbacks')  renderFeedbacks(content);
+};
+
+// ── DRIVER QUEUE ──────────────────────────────────────────────────────────
+function renderQueue(content) {
+  content.innerHTML = `
+    <div class="page-header">
+      <h1>Driver Approval Queue</h1>
+      <p>Review new driver applications before they go live</p>
+    </div>
+    <div id="queue-list"><div class="empty-state">Loading…</div></div>
+  `;
+
+  const q = query(collection(db, 'users'), where('role', '==', 'driver'), where('approved', '==', false));
+  const unsub = onSnapshot(q, (snap) => {
+    const pending = snap.docs.filter(d => !d.data().rejected).map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('queue-count').textContent = pending.length;
+
+    const el = document.getElementById('queue-list');
+    if (!el) return;
+
+    if (pending.length === 0) {
+      el.innerHTML = `<div class="empty-state">&#10003; No pending driver applications</div>`;
+      return;
+    }
+
+    el.innerHTML = pending.map(dr => `
+      <div class="driver-card">
+        <div class="avatar">
+          ${dr.photoURL ? `<img src="${escUrl(dr.photoURL)}" alt="photo">` : '&#128105;'}
+        </div>
+        <div class="driver-info">
+          <h3>${esc(dr.name)}</h3>
+          <p>${esc(dr.email)} &nbsp;|&nbsp; ${esc(dr.phone)}</p>
+          <div class="tags">
+            <span class="tag">&#128663; ${esc(dr.carColor)} ${esc(dr.carModel)}</span>
+            <span class="tag">&#128278; ${esc(dr.plateNumber)}</span>
+            <span class="tag">&#128203; License: ${esc(dr.licenseNumber)}</span>
+          </div>
+          <button class="btn-view-photos" onclick="viewPhotos('${esc(dr.name)}','${escUrl(dr.photoURL||'')}','${escUrl(dr.carPhotoURL||'')}','${escUrl(dr.nationalIdPhotoURL||'')}','${escUrl(dr.licensePhotoURL||'')}')">
+            &#128248; View All Photos
+          </button>
+          <div style="font-size:12px;color:#9CA3AF;margin-top:8px">
+            Submitted: ${dr.createdAt ? new Date(dr.createdAt.seconds * 1000).toLocaleString('en-EG') : '&#8212;'}
+          </div>
+        </div>
+        <div class="driver-actions">
+          <button class="btn-approve" onclick="approveDriver('${esc(dr.id)}')">&#10003; Approve</button>
+          <button class="btn-reject"  onclick="openRejectModal('${esc(dr.id)}')">&#10007; Reject</button>
+        </div>
+      </div>
+    `).join('');
+  });
+  unsubs.push(unsub);
+}
+
+window.approveDriver = async (id) => {
+  try {
+    await updateDoc(doc(db, 'users', id), { approved: true });
+    toast('Driver approved! They can now go online.', 'success');
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+};
+
+window.openRejectModal = (id) => {
+  rejectTargetId = id;
+  document.getElementById('reject-reason').value = '';
+  document.getElementById('reject-modal').style.display = 'flex';
+};
+window.closeRejectModal = () => {
+  document.getElementById('reject-modal').style.display = 'none';
+  rejectTargetId = null;
+};
+window.confirmReject = async () => {
+  if (!rejectTargetId) return;
+  const reason = document.getElementById('reject-reason').value.trim();
+  try {
+    await updateDoc(doc(db, 'users', rejectTargetId), {
+      rejected: true,
+      rejectionReason: reason || 'Application rejected by admin.',
+      rejectedAt: serverTimestamp(),
+    });
+    toast('Driver application rejected.', 'info');
+    closeRejectModal();
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+};
+
+// ── DRIVER DATABASE ───────────────────────────────────────────────────────
+function renderDrivers(content) {
+  content.innerHTML = `
+    <div class="page-header">
+      <h1>Driver Database</h1>
+      <p>All drivers registered on the platform</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Driver</th><th>Car</th><th>Plate</th>
+          <th>Trips</th><th>Rating</th><th>Wallet</th><th>Status</th><th>Photos</th>
+        </tr></thead>
+        <tbody id="drivers-body"><tr><td colspan="8" class="loading-cell">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+
+  const unsub = onSnapshot(query(collection(db, 'users'), where('role', '==', 'driver')), (snap) => {
+    const tbody = document.getElementById('drivers-body');
+    if (!tbody) return;
+    if (snap.empty) { tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">No drivers found</td></tr>`; return; }
+    tbody.innerHTML = snap.docs.map(d => {
+      const dr = d.data();
+      const status = dr.approved ? 'approved' : dr.rejected ? 'rejected' : 'pending';
+      return `<tr>
+        <td>
+          <span class="cell-avatar">${dr.photoURL ? `<img src="${escUrl(dr.photoURL)}">` : '&#128105;'}</span>
+          <div style="display:inline-block;vertical-align:middle">
+            <div class="cell-name">${esc(dr.name)}</div>
+            <div class="cell-sub">${esc(dr.email)}</div>
+          </div>
+        </td>
+        <td>${esc(dr.carColor)} ${esc(dr.carModel)}</td>
+        <td>${esc(dr.plateNumber)}</td>
+        <td>${dr.totalTrips || 0}</td>
+        <td>${dr.rating ? dr.rating.toFixed(1) + ' &#11088;' : '&#8212;'}</td>
+        <td>${dr.wallet || 0} EGP</td>
+        <td><span class="badge ${status}">${status}</span></td>
+        <td><button class="btn-view-photos" onclick="viewPhotos('${esc(dr.name)}','${escUrl(dr.photoURL||'')}','${escUrl(dr.carPhotoURL||'')}','${escUrl(dr.nationalIdPhotoURL||'')}','${escUrl(dr.licensePhotoURL||'')}')">&#128248; Photos</button></td>
+      </tr>`;
+    }).join('');
+  });
+  unsubs.push(unsub);
+}
+
+// ── PASSENGER DATABASE ────────────────────────────────────────────────────
+function renderPassengers(content) {
+  content.innerHTML = `
+    <div class="page-header">
+      <h1>Passenger Database</h1>
+      <p>All registered passengers</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Passenger</th><th>Phone</th><th>Trips</th><th>Badges</th><th>Wallet</th><th>Joined</th>
+        </tr></thead>
+        <tbody id="passengers-body"><tr><td colspan="6" class="loading-cell">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+
+  const unsub = onSnapshot(collection(db, 'users'), (snap) => {
+    const tbody = document.getElementById('passengers-body');
+    if (!tbody) return;
+    const passengerDocs = snap.docs.filter(d => {
+      const role = d.data().role;
+      return role === 'passenger' || (!role && role !== 'driver' && role !== 'admin');
+    });
+    if (passengerDocs.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="loading-cell">No passengers found</td></tr>`; return; }
+    tbody.innerHTML = passengerDocs.map(d => {
+      const p = d.data();
+      const joined = p.createdAt ? new Date(p.createdAt.seconds * 1000).toLocaleDateString('en-EG') : '&#8212;';
+      return `<tr>
+        <td>
+          <span class="cell-avatar">${p.photoURL ? `<img src="${escUrl(p.photoURL)}">` : '&#128105;'}</span>
+          <div style="display:inline-block;vertical-align:middle">
+            <div class="cell-name">${esc(p.name)}</div>
+            <div class="cell-sub">${esc(p.email)}</div>
+          </div>
+        </td>
+        <td>${esc(p.phone)}</td>
+        <td>${p.totalTrips || 0}</td>
+        <td>${'&#127885;'.repeat(Math.min(p.badges || 0, 10))}${(p.badges || 0) > 10 ? ` +${(p.badges - 10)}` : ''}</td>
+        <td>${p.wallet || 0} EGP</td>
+        <td>${joined}</td>
+      </tr>`;
+    }).join('');
+  });
+  unsubs.push(unsub);
+}
+
+// ── TRIP HISTORY ──────────────────────────────────────────────────────────
+function renderTrips(content) {
+  content.innerHTML = `
+    <div class="page-header">
+      <h1>Trip History</h1>
+      <p>All trips across the platform — real-time</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Date &amp; Time</th><th>Passenger</th><th>Driver</th>
+          <th>Route</th><th>Dist.</th><th>Fare</th><th>Payment</th><th>Status</th>
+        </tr></thead>
+        <tbody id="trips-body"><tr><td colspan="8" class="loading-cell">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+
+  const q = query(collection(db, 'rides'), orderBy('createdAt', 'desc'));
+  const unsub = onSnapshot(q, (snap) => {
+    const tbody = document.getElementById('trips-body');
+    if (!tbody) return;
+    if (snap.empty) { tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">No trips found</td></tr>`; return; }
+    tbody.innerHTML = snap.docs.map(d => {
+      const t = d.data();
+      const date = t.createdAt ? new Date(t.createdAt.seconds * 1000).toLocaleString('en-EG', { dateStyle:'short', timeStyle:'short' }) : '&#8212;';
+      const st = t.status || 'unknown';
+      return `<tr>
+        <td style="white-space:nowrap;font-size:13px;color:#6B7280">${date}</td>
+        <td>${esc(t.passengerName)}</td>
+        <td>${esc(t.driverName) || '&#8212;'}</td>
+        <td>
+          <div style="font-size:13px">${esc(t.from)}</div>
+          <div style="font-size:12px;color:#9CA3AF">&#8595; ${esc(t.to)}</div>
+        </td>
+        <td>${t.distanceKm || '&#8212;'} km</td>
+        <td><strong>${t.estimatedFare || '&#8212;'} EGP</strong>${t.isFirstRide ? ' &#127881;' : ''}</td>
+        <td style="text-transform:capitalize">${esc(t.paymentMethod)}</td>
+        <td><span class="badge ${st.replace('_','-')}">${st.replace('_',' ')}</span></td>
+      </tr>`;
+    }).join('');
+  });
+  unsubs.push(unsub);
+}
+
+// ── FEEDBACKS ─────────────────────────────────────────────────────────────
+function renderFeedbacks(content) {
+  content.innerHTML = `
+    <div class="page-header">
+      <h1>User Feedbacks</h1>
+      <p>Messages submitted by passengers and drivers via the app</p>
+    </div>
+    <div id="feedbacks-list"><div class="empty-state">Loading…</div></div>
+  `;
+
+  const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
+  const unsub = onSnapshot(q, (snap) => {
+    const el = document.getElementById('feedbacks-list');
+    if (!el) return;
+
+    const badge = document.getElementById('feedbacks-count');
+    if (badge) { badge.textContent = snap.size; badge.style.display = snap.size ? '' : 'none'; }
+
+    if (snap.empty) {
+      el.innerHTML = `<div class="empty-state">&#128237; No feedback messages yet.</div>`;
+      return;
+    }
+
+    el.innerHTML = snap.docs.map(d => {
+      const fb = d.data();
+      const date = fb.createdAt
+        ? new Date(fb.createdAt.seconds * 1000).toLocaleString('en-EG', { dateStyle: 'medium', timeStyle: 'short' })
+        : '&#8212;';
+      const isDriver = fb.role === 'driver';
+      const roleColor = isDriver ? '#7B1FA2' : '#10B981';
+      const roleBg   = isDriver ? '#F3E5F5' : '#D1FAE5';
+      const roleLabel = isDriver ? '&#128663; Driver' : '&#128100; Passenger';
+      return `
+        <div class="driver-card" style="flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="background:${roleBg};color:${roleColor};font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px">${roleLabel}</span>
+              <span style="font-size:15px;font-weight:700;color:var(--text)">${esc(fb.userName)}</span>
+            </div>
+            <span style="font-size:12px;color:var(--text-muted)">${date}</span>
+          </div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${esc(fb.subject)}</div>
+          <div style="font-size:14px;color:var(--text-muted);line-height:1.6;background:#F3F4F6;border-radius:8px;padding:10px 12px">${esc(fb.message)}</div>
+        </div>`;
+    }).join('');
+  });
+  unsubs.push(unsub);
+}
+
+// ── PHOTO VIEWER ─────────────────────────────────────────────────────────
+window.viewPhotos = (name, profileURL, vehicleURL, nationalURL, licenseURL) => {
+  document.getElementById('photo-modal-name').textContent = name;
+
+  const slots = [
+    { id: 'pm-profile',  url: profileURL,  label: '&#129967;' },
+    { id: 'pm-vehicle',  url: vehicleURL,  label: '&#128663;' },
+    { id: 'pm-national', url: nationalURL, label: '&#129258;' },
+    { id: 'pm-license',  url: licenseURL,  label: '&#128203;' },
+  ];
+
+  slots.forEach(({ id, url, label }) => {
+    const frame = document.getElementById(id);
+    frame.textContent = '';
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.title = 'Click to open full size';
+      img.addEventListener('click', () => window.open(url, '_blank'));
+      frame.appendChild(img);
+    } else {
+      const div = document.createElement('div');
+      div.className = 'no-photo';
+      div.innerHTML = label;
+      const span = document.createElement('span');
+      span.textContent = 'No photo uploaded';
+      div.appendChild(span);
+      frame.appendChild(div);
+    }
+  });
+
+  document.getElementById('photo-modal').style.display = 'flex';
+};
+
+window.closePhotoModal = () => {
+  document.getElementById('photo-modal').style.display = 'none';
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function esc(str) {
+  if (!str) return '&#8212;';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function escUrl(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+</body>
+</html>

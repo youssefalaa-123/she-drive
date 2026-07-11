@@ -1,121 +1,145 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Anthropic from 'https://esm.sh/@anthropic-ai/sdk';
+import { verifyFirebaseToken, extractBearerToken } from '../_shared/firebaseAuth.ts';
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-);
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '';
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get('origin') ?? '';
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN && origin === ALLOWED_ORIGIN ? origin : '',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-firebase-token',
+  };
+}
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
 
-Deno.serve(async (req) => {
-  try {
-    const { driver_id, period_type } = await req.json();
-    if (!driver_id || !period_type) return new Response('Missing driver_id or period_type', { status: 400 });
+/** Strip characters that could be used for prompt injection. */
+function sanitizeText(s: unknown, maxLen = 200): string {
+  if (!s || typeof s !== 'string') return '';
+  return s.replace(/[^\p{L}\p{N}\p{P}\p{Z}]/gu, '').slice(0, maxLen).trim();
+}
 
-    const now = new Date();
-    const periodStart = new Date();
-    if (period_type === 'weekly') {
-      periodStart.setDate(now.getDate() - 7);
-    } else {
-      periodStart.setDate(now.getDate() - 30);
+Deno.serve(async (req) => {
+  const cors = corsHeaders(req);
+
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: cors });
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const token = extractBearerToken(req);
+  if (!token) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json', ...cors },
+    });
+  }
+  const caller = await verifyFirebaseToken(token);
+  if (!caller) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json', ...cors },
+    });
+  }
+
+  try {
+    const {
+      driver_id,
+      period_type,
+      driver_name,
+      all_time_rating,
+      all_time_rating_count,
+      stats,
+      reviews,
+      language,
+    } = await req.json();
+
+    if (!driver_id || !period_type || !stats) {
+      return new Response('Missing required fields', { status: 400, headers: cors });
     }
 
-    // Fetch driver profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('name, rating, rating_count, total_trips, wallet')
-      .eq('id', driver_id)
-      .single();
+    // Caller may only request summaries for themselves
+    if (driver_id !== caller.uid) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json', ...cors },
+      });
+    }
 
-    // Fetch rides in the period
-    const { data: rides } = await supabase
-      .from('rides')
-      .select('final_fare, driver_earnings, status, created_at, cancelled_by, cancellation_fee, payment_method')
-      .eq('driver_id', driver_id)
-      .gte('created_at', periodStart.toISOString())
-      .order('created_at', { ascending: false });
+    const isArabic = language === 'ar';
+    const label = period_type === 'weekly'
+      ? (isArabic ? 'أسبوع' : 'week')
+      : (isArabic ? 'شهر' : 'month');
 
-    // Fetch reviews in the period
-    const { data: reviews } = await supabase
-      .from('reviews')
-      .select('rating, comment, created_at')
-      .eq('driver_id', driver_id)
-      .gte('created_at', periodStart.toISOString())
-      .order('created_at', { ascending: false });
+    // Sanitize all user-supplied strings before prompt interpolation
+    const firstName = sanitizeText(driver_name?.split(' ')[0] || (isArabic ? 'السائقة' : 'there'), 50);
+    const safeReviews = (Array.isArray(reviews) ? reviews : [])
+      .filter((r: any) => r?.comment && typeof r.comment === 'string')
+      .slice(0, 6)
+      .map((r: any) => ({ comment: sanitizeText(r.comment, 300), rating: Number(r.rating) || 0 }));
 
-    // Compute stats
-    const completedRides  = rides?.filter(r => r.status === 'completed') ?? [];
-    const cancelledRides  = rides?.filter(r => r.status === 'cancelled')  ?? [];
-    const totalEarnings   = completedRides.reduce((s, r) => s + (r.driver_earnings ?? 0), 0);
-    const avgRating       = reviews && reviews.length > 0
-      ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-      : null;
-    const fiveStarCount   = reviews?.filter(r => r.rating === 5).length ?? 0;
-    const lowRatingCount  = reviews?.filter(r => r.rating <= 2).length ?? 0;
-    const recentComments  = reviews
-      ?.filter(r => r.comment && r.comment.trim().length > 0)
-      .slice(0, 5)
-      .map(r => `"${r.comment}" (${r.rating}★)`)
-      .join('\n') ?? 'No written comments this period.';
+    const commentLines = safeReviews
+      .filter(r => r.comment.length > 0)
+      .map(r => `- "${r.comment}" (${r.rating}⭐)`)
+      .join('\n');
 
-    const firstName = profile?.name?.split(' ')[0] ?? 'there';
-    const label = period_type === 'weekly' ? 'week' : 'month';
+    const hasComments = commentLines.length > 0;
+    const hasRatings  = (stats.review_count ?? 0) > 0;
 
-    const stats = {
-      completed_rides: completedRides.length,
-      cancelled_rides: cancelledRides.length,
-      total_earnings: Math.round(totalEarnings),
-      avg_rating: avgRating ? Math.round(avgRating * 10) / 10 : null,
-      five_star_count: fiveStarCount,
-      low_rating_count: lowRatingCount,
-      review_count: reviews?.length ?? 0,
-    };
+    const prompt = isArabic
+      ? `أنتِ مدربة أداء دافئة وصادقة لتطبيق SheDrive، تطبيق نقل حصري للنساء في مصر.
+
+اكتبي فقرة واحدة متدفقة (4-6 جمل) للسائقة ${firstName} تلخّصين فيها أداءها هذا ${label}.
+
+المعلومات التي يجب دمجها في الفقرة:
+- أتمّت ${stats.completed_rides} رحلة هذا ${label}، وحققت ${stats.total_earnings} جنيه.
+- ${hasRatings ? `منحتها الراكبات تقييمًا متوسطًا ${stats.avg_rating} ⭐ هذا ${label} (${stats.review_count} تقييم: ${stats.five_star_count} خمس نجوم، ${stats.low_rating_count} تقييمات منخفضة).` : 'لم تحصل على تقييمات من الراكبات هذا ' + label + ' بعد.'}
+- تقييمها الإجمالي ${all_time_rating ? all_time_rating.toFixed(1) + ' ⭐ من ' + all_time_rating_count + ' تقييم' : 'لم يُحدَّد بعد'}.
+${hasComments ? `\nما كتبته الراكبات هذا ${label}:\n${commentLines}` : `\nلا توجد تعليقات مكتوبة من الراكبات هذا ${label}.`}
+
+قواعد الأسلوب:
+- خاطبيها مباشرةً بضمير المخاطبة المؤنث ("أنتِ"، "رحلاتكِ"، "أداؤكِ").
+- اذكري الأرقام بشكل طبيعي داخل الفقرة — لا قوائم ولا نقاط.
+- إن كانت هناك تعليقات مكتوبة، اقتبسي منها أو استشهدي بمضمون واحد على الأقل.
+- إن كانت التقييمات مرتفعة، احتفلي بصدق. وإن كانت منخفضة، اذكري ذلك بصدق ودفء واقترحي شيئًا واحدًا ملموسًا يمكنها تحسينه.
+- إن لم تكن لديها رحلات بعد، شجّعيها بدفء على البدء.
+- اختتمي بنصيحة تدريبية قصيرة وعملية كجملة أخيرة.
+- اكتبي الفقرة فقط. لا عناوين، لا نقاط، لا تسميات.`
+      : `You are a warm, honest performance coach for SheDrive, a women-only ride-hailing app in Egypt.
+
+Write a single flowing paragraph (4-6 sentences) for driver ${firstName} summarising her performance this ${label}.
+
+Facts to weave into the paragraph:
+- She completed ${stats.completed_rides} trip${stats.completed_rides !== 1 ? 's' : ''} this ${label}, earning ${stats.total_earnings} EGP.
+- ${hasRatings ? `Passengers gave her an average of ${stats.avg_rating} ⭐ this ${label} (${stats.review_count} rating${stats.review_count !== 1 ? 's' : ''}: ${stats.five_star_count} five-star, ${stats.low_rating_count} low).` : 'She has no passenger ratings yet this ' + label + '.'}
+- Her all-time rating is ${all_time_rating ? all_time_rating.toFixed(1) + ' ⭐ from ' + all_time_rating_count + ' total ratings' : 'not yet established'}.
+${hasComments ? `\nWhat passengers wrote this ${label}:\n${commentLines}` : `\nNo written comments from passengers this ${label}.`}
+
+Tone rules:
+- Speak directly to her using "you" and "your".
+- Mention specific numbers naturally in the flow of the paragraph — do not bullet-point them.
+- If she has written comments, quote or closely paraphrase at least one of them.
+- If ratings are high, celebrate genuinely. If low, name it honestly and warmly suggest one concrete thing she can do differently.
+- If she has no trips yet, encourage her to get started with warmth.
+- End with one short, actionable coaching tip as the final sentence.
+- Output ONLY the paragraph. No headers, no bullet points, no labels.`;
 
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-5',
-      max_tokens: 350,
-      messages: [{
-        role: 'user',
-        content: `You are a warm, honest performance coach for a women-only ride-hailing app called SheDrive.
-Write a ${label}ly reflection summary for a driver named ${firstName}.
-
-Stats for this ${label}:
-- Completed trips: ${stats.completed_rides}
-- Cancelled trips: ${stats.cancelled_rides}
-- Total earnings: ${stats.total_earnings} EGP
-- Average rating this ${label}: ${stats.avg_rating ?? 'no ratings yet'}
-- Overall all-time rating: ${profile?.rating?.toFixed(2) ?? 'N/A'} (${profile?.rating_count ?? 0} ratings total)
-- 5-star ratings this ${label}: ${stats.five_star_count}
-- Low ratings (1-2 stars) this ${label}: ${stats.low_rating_count}
-
-Passenger comments this ${label}:
-${recentComments}
-
-Rules:
-- Be honest but warm — highlight wins, flag concerns constructively.
-- Be specific with numbers.
-- If ratings dropped, acknowledge it gently and suggest possible reasons.
-- 3-4 sentences max.
-- Output ONLY the summary text, no headers or labels.`,
-      }],
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
     });
 
     const summary = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
 
-    await supabase.from('driver_summaries').insert({
-      driver_id,
-      period_type,
-      period_start: periodStart.toISOString().split('T')[0],
-      period_end:   now.toISOString().split('T')[0],
-      summary,
-      stats,
-    });
-
     return new Response(JSON.stringify({ summary, stats }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...cors },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    console.error('[generate-driver-summary] Error:', err);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json', ...cors } },
+    );
   }
 });

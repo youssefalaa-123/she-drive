@@ -33,7 +33,7 @@ export default function DriverOnboarding({ navigation }) {
     }
     if (!email.includes('@')) { Alert.alert(t('invalidEmail') || 'Invalid Email', t('enterValidEmail')); return; }
     if (digits.length < 10) { Alert.alert(t('invalidPhone'), t('invalidPhoneMsg')); return; }
-    if (password.length < 6) { Alert.alert(t('weakPassword'), t('weakPasswordMsg')); return; }
+    if (password.length < 8) { Alert.alert(t('weakPassword'), t('weakPasswordMsg')); return; }
     if (!photos.profile || !photos.vehicle || !photos.nationalId || !photos.licenseId) {
       Alert.alert(t('allPhotosRequired'), t('allPhotosRequiredMsg')); return;
     }

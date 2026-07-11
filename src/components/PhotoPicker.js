@@ -4,13 +4,33 @@ import {
   ActivityIndicator, Platform, Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../lib/supabase';
+import { auth } from '../firebase/config';
 import { colors } from '../theme';
 
-const CLOUD_NAME = 'dy1gikshg';
-const UPLOAD_PRESET = 'hlsbpqhn';
-const UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+async function getFirebaseToken() {
+  try {
+    return (await auth.currentUser?.getIdToken()) ?? null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function getUploadSignature(folder) {
+  const token = await getFirebaseToken();
+  if (!token) throw new Error('Not authenticated');
+  const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
+    body: { folder },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (error || !data?.signature) throw new Error('Could not get upload signature');
+  return data; // { signature, timestamp, api_key, cloud_name }
+}
 
 async function uploadToCloudinary(uri, folder) {
+  const { signature, timestamp, api_key, cloud_name } = await getUploadSignature(folder);
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`;
+
   const formData = new FormData();
   if (Platform.OS === 'web') {
     const res = await fetch(uri);
@@ -19,9 +39,12 @@ async function uploadToCloudinary(uri, folder) {
   } else {
     formData.append('file', { uri, type: 'image/jpeg', name: 'photo.jpg' });
   }
-  formData.append('upload_preset', UPLOAD_PRESET);
-  formData.append('folder', folder);
-  const res = await fetch(UPLOAD_URL, { method: 'POST', body: formData });
+  formData.append('folder',    folder);
+  formData.append('timestamp', String(timestamp));
+  formData.append('api_key',   api_key);
+  formData.append('signature', signature);
+
+  const res  = await fetch(uploadUrl, { method: 'POST', body: formData });
   const data = await res.json();
   if (data.secure_url) return data.secure_url;
   throw new Error(data.error?.message || 'Upload failed');
@@ -57,7 +80,7 @@ export default function PhotoPicker({ label, value, onChange, storagePath, size 
       return;
     }
     Alert.alert('Select Photo', 'Choose a source', [
-      { text: '📷  Camera', onPress: () => runPick(true) },
+      { text: '📷  Camera',  onPress: () => runPick(true) },
       { text: '🖼️  Gallery', onPress: () => runPick(false) },
       { text: 'Cancel', style: 'cancel' },
     ]);
@@ -71,7 +94,7 @@ export default function PhotoPicker({ label, value, onChange, storagePath, size 
       const url = await uploadToCloudinary(result.assets[0].uri, storagePath);
       onChange(url);
     } catch (err) {
-      Alert.alert('Upload Failed', err.message);
+      Alert.alert('Upload Failed', 'Could not upload photo. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -110,11 +133,11 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed',
     justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
   },
-  inner: { alignItems: 'center', padding: 6 },
-  preview: { resizeMode: 'cover' },
-  icon: { fontSize: 22, marginBottom: 3 },
-  label: { fontSize: 9, color: colors.gray, textAlign: 'center' },
-  uploadText: { fontSize: 9, color: colors.gray, marginTop: 4 },
+  inner:       { alignItems: 'center', padding: 6 },
+  preview:     { resizeMode: 'cover' },
+  icon:        { fontSize: 22, marginBottom: 3 },
+  label:       { fontSize: 9, color: colors.gray, textAlign: 'center' },
+  uploadText:  { fontSize: 9, color: colors.gray, marginTop: 4 },
   editBadge: {
     position: 'absolute', bottom: 3, right: 3,
     width: 18, height: 18, borderRadius: 9,
