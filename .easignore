@@ -1,0 +1,29 @@
+# Files to exclude from the EAS Build archive.
+# EAS uploads all files not excluded here (including git-untracked files).
+# Keep only what the React Native app actually needs.
+
+# Server-side / Supabase (not needed for mobile build)
+supabase/
+
+# Cloud Functions (has its own package.json — confuses npm install)
+functions/
+
+# Admin web dashboard (not part of the mobile app)
+admin/
+
+# Test tooling
+tests/
+test-results/
+playwright.config.js
+
+# Docs and misc
+ARCHITECTURE.md
+skills-lock.json
+
+# Windows artifact (created by accidental `> nul` redirect)
+nul
+
+# Claude / AI tool configs
+.claude/
+.claude-flow/
+.mcp.json
