@@ -1,29 +1,49 @@
-# Files to exclude from the EAS Build archive.
-# EAS uploads all files not excluded here (including git-untracked files).
-# Keep only what the React Native app actually needs.
+# Files excluded from the EAS Build archive.
+# EAS uploads ALL files (including untracked) unless excluded here.
 
-# Server-side / Supabase (not needed for mobile build)
+# ── Secrets (never send to EAS servers) ──────────────────────────────────────
+google-play-service-account.json
+.env
+.env.*
+*.pem
+*.key
+
+# ── AI tool caches (ruflo, graphify, claude, impeccable) ─────────────────────
+.swarm/
+graphify-out/
+ruvector.db
+.impeccable/
+.claude/
+.claude-flow/
+.mcp.json
+.graphifyignore
+
+# ── Expo local dev cache ──────────────────────────────────────────────────────
+.expo/
+
+# ── Web build output (EAS reads metadata.json; dist/ one confuses it) ────────
+dist/
+
+# ── Server-side / Supabase ────────────────────────────────────────────────────
 supabase/
-
-# Cloud Functions (has its own package.json — confuses npm install)
 functions/
 
-# Admin web dashboard (not part of the mobile app)
+# ── Admin web dashboard ───────────────────────────────────────────────────────
 admin/
 
-# Test tooling
+# ── Test tooling ──────────────────────────────────────────────────────────────
 tests/
 test-results/
 playwright.config.js
 
-# Docs and misc
+# ── Docs and misc ─────────────────────────────────────────────────────────────
 ARCHITECTURE.md
+AGENTS.md
+LICENSE
+README.md
 skills-lock.json
-
-# Windows artifact (created by accidental `> nul` redirect)
 nul
 
-# Claude / AI tool configs
-.claude/
-.claude-flow/
-.mcp.json
+# ── EAS / git meta ────────────────────────────────────────────────────────────
+eas.json
+CLAUDE.md
