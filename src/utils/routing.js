@@ -3,10 +3,10 @@
 
 import { searchPOIs } from '../data/cairoPOIs';
 
-// Greater Cairo bounding box: minLon, minLat, maxLon, maxLat
-const CAIRO_BBOX = '30.7,29.7,32.2,30.6';
+// All-Egypt bounding box: minLon, minLat, maxLon, maxLat
+const EGYPT_BBOX = '24.7,22.0,37.1,31.7';
 
-// ── Autocomplete: curated POIs first, then Photon for addresses ───────────────
+// ── Autocomplete: curated POIs first, then Photon for Egypt-wide search ───────
 export async function getAutocompleteSuggestions(query, userLat, userLng) {
   if (!query || query.trim().length < 2) return [];
 
@@ -19,15 +19,16 @@ export async function getAutocompleteSuggestions(query, userLat, userLng) {
     lng: p.lng,
   }));
 
-  // 2. Photon geocoding — Cairo-only bbox
+  // 2. Photon geocoding — all Egypt (Sharm, Dahab, Sahel, etc.)
   let photon = [];
   try {
     const params = new URLSearchParams({
       q: query,
-      limit: '5',
+      limit: '7',
       lang: 'en',
-      bbox: CAIRO_BBOX,
+      bbox: EGYPT_BBOX,
     });
+    // Bias toward user location if available (doesn't restrict distant results)
     if (userLat != null && userLng != null) {
       params.set('lat', userLat);
       params.set('lon', userLng);
@@ -37,18 +38,10 @@ export async function getAutocompleteSuggestions(query, userLat, userLng) {
     });
     const data = await res.json();
     photon = (data.features ?? [])
-      .filter((f) => {
-        // Strict Cairo filter
-        const c = f.properties.country;
-        const state = (f.properties.state || '').toLowerCase();
-        return c === 'Egypt' && (
-          state.includes('cairo') || state.includes('giza') ||
-          state.includes('قاهرة') || state.includes('جيزة')
-        );
-      })
+      .filter((f) => f.properties.country === 'Egypt')
       .map((f) => {
         const p = f.properties;
-        const nameParts = [p.name, p.street, p.suburb || p.district, p.city]
+        const nameParts = [p.name, p.street, p.suburb || p.district, p.city, p.state]
           .filter(Boolean);
         return {
           isCurated: false,
@@ -62,11 +55,23 @@ export async function getAutocompleteSuggestions(query, userLat, userLng) {
     // Photon unavailable — curated results are still shown
   }
 
-  // Merge: curated first, then Photon (skip duplicates by proximity)
+  // Merge: curated first, then Photon (skip duplicates by proximity OR name similarity)
+  const significantWords = (s) =>
+    s.toLowerCase().replace(/[^a-z0-9؀-ۿ\s]/g, ' ')
+      .split(/\s+/).filter((w) => w.length > 2);
+
+  const nameSimilar = (a, b) => {
+    const wa = new Set(significantWords(a));
+    const overlap = significantWords(b).filter((w) => wa.has(w)).length;
+    return overlap >= 2;
+  };
+
   const merged = [...curated];
   for (const item of photon) {
     const isDupe = merged.some(
-      (m) => Math.abs(m.lat - item.lat) < 0.001 && Math.abs(m.lng - item.lng) < 0.001
+      (m) =>
+        (Math.abs(m.lat - item.lat) < 0.001 && Math.abs(m.lng - item.lng) < 0.001) ||
+        nameSimilar(m.name, item.name)
     );
     if (!isDupe) merged.push(item);
   }

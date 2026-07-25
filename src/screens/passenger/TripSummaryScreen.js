@@ -1,12 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
   ScrollView, ActivityIndicator, Alert, TextInput,
 } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { auth } from '../../firebase/config';
 import { supabase } from '../../lib/supabase';
+import { toRide } from '../../lib/transforms';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/SettingsContext';
 import RatingStars from '../../components/RatingStars';
@@ -25,45 +23,59 @@ export default function TripSummaryScreen({ navigation, route }) {
   const [submitting, setSubmitting] = useState(false);
   const [badgeVisible, setBadgeVisible] = useState(false);
   const [newTripCount, setNewTripCount] = useState(0);
+  const badgeNavRef = useRef(null);
 
   useEffect(() => {
-    getDoc(doc(db, 'rides', rideId)).then((snap) => {
-      if (snap.exists()) setRide({ id: snap.id, ...snap.data() });
-    });
+    supabase
+      .from('rides')
+      .select('*')
+      .eq('id', rideId)
+      .single()
+      .then(({ data }) => {
+        if (data) setRide(toRide(data));
+      });
+    return () => clearTimeout(badgeNavRef.current);
   }, [rideId]);
+
+  const goHome = () => {
+    clearTimeout(badgeNavRef.current);
+    navigation.reset({ index: 0, routes: [{ name: 'PassengerTabs' }] });
+  };
+
+  const handleSkip = goHome;
 
   const handleSubmit = async () => {
     if (!ride || submitting || submitted) return;
     setSubmitting(true);
 
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('Not authenticated');
-
-      const { data, error } = await supabase.functions.invoke('settle-ride', {
+      const { data: result, error } = await supabase.functions.invoke('settle-ride', {
         body: { rideId, rating, comment: comment.trim() },
-        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (error) throw new Error(error.message || 'Settlement failed');
+      if (error) throw new Error(result?.error ?? error?.message ?? 'Unknown error');
+      if (result?.error) throw new Error(result.error);
 
-      const { newTotal, newBadges } = data;
-      const oldBadges = Math.floor((userProfile?.totalTrips || 0) / 10);
+      setSubmitting(false);
+      setSubmitted(true);
 
-      if (newBadges > oldBadges) {
+      const newTotal  = result?.newTotal ?? (userProfile?.totalTrips || 0) + 1;
+      const prevTotal = newTotal - 1;
+      if (Math.floor(newTotal / 10) > Math.floor(prevTotal / 10)) {
         setNewTripCount(newTotal);
         setBadgeVisible(true);
+        badgeNavRef.current = setTimeout(goHome, 4000);
+      } else {
+        goHome();
       }
-      setSubmitted(true);
     } catch (err) {
-      console.error('[TripSummary] settle-ride error:', err.message);
-      Alert.alert(t('error'), t('submissionFailed'));
-    } finally {
+      console.error('[TripSummary]', err?.message);
       setSubmitting(false);
+      Alert.alert('Submission Error', err?.message || t('submissionFailed'));
     }
   };
 
-  const handleDone = () => navigation.navigate('PassengerTabs');
+  const handleDone = goHome;
 
   if (!ride) {
     return (
@@ -78,7 +90,7 @@ export default function TripSummaryScreen({ navigation, route }) {
       <BadgeModal
         visible={badgeVisible}
         tripCount={newTripCount}
-        onClose={() => { setBadgeVisible(false); handleDone(); }}
+        onClose={() => { setBadgeVisible(false); setSubmitted(true); handleDone(); }}
       />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.successBanner}>
@@ -92,6 +104,7 @@ export default function TripSummaryScreen({ navigation, route }) {
           <Row label={t('to')} value={ride.to} styles={styles} />
           <Row label={t('distance')} value={`${ride.distanceKm} ${t('km')}`} styles={styles} />
           <Row label={t('payment')} value={paymentLabel(ride.paymentMethod, t)} styles={styles} />
+
           {ride.paymentMethod === 'wallet+cash' && (
             <>
               <Row label={t('walletCharged')} value={`${ride.walletAmountPaid} ${t('egp')}`} styles={styles} />
@@ -104,9 +117,14 @@ export default function TripSummaryScreen({ navigation, route }) {
               <Row label={t('cardCharged')} value={`${ride.remainingAmount} ${t('egp')}`} styles={styles} />
             </>
           )}
+
           {ride.isFirstRide && (
             <Row label={t('discount')} value={t('firstRideBadge')} highlight styles={styles} goldColor={colors.gold} />
           )}
+          {ride.waitTimeFee > 0 && (
+            <Row label={t('waitFeeLabel')} value={`+${ride.waitTimeFee} ${t('egp')}`} styles={styles} />
+          )}
+
           <View style={styles.fareRow}>
             <Text style={styles.fareLabel}>{t('totalFare')}</Text>
             <Text style={styles.fareAmount}>{ride.finalFare || ride.estimatedFare} {t('egp')}</Text>
@@ -136,8 +154,11 @@ export default function TripSummaryScreen({ navigation, route }) {
             >
               {submitting
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.submitText}>{rating === 0 ? t('skipFinish') : t('submitRating')}</Text>
+                : <Text style={styles.submitText}>{t('submitRating')}</Text>
               }
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} disabled={submitting}>
+              <Text style={styles.skipText}>{t('skipFinish')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -192,6 +213,8 @@ function makeStyles(colors, shadow) {
     commentInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 8, fontSize: 13, color: colors.dark, minHeight: 52, textAlignVertical: 'top', marginBottom: 8 },
     submitBtn: { backgroundColor: colors.primary, borderRadius: 12, padding: 12, alignItems: 'center', marginTop: 4 },
     submitText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    skipBtn: { alignItems: 'center', paddingVertical: 10, marginTop: 4 },
+    skipText: { color: colors.gray, fontSize: 14, fontWeight: '600' },
     doneBtn: { backgroundColor: colors.white, borderRadius: 12, padding: 12, alignItems: 'center', ...shadow.sm, marginTop: 8 },
     doneText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
   });

@@ -93,9 +93,9 @@ export default function LocationSearch({
 
   const styles = useMemo(() => StyleSheet.create({
     row:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-    dot:   { width: 10, height: 10, borderRadius: 5, marginRight: 14, flexShrink: 0 },
+    dot:   { width: 10, height: 10, borderRadius: 5, marginEnd: 14, flexShrink: 0 },
     input: { flex: 1, fontSize: 15, color: colors.dark },
-    icon:  { marginRight: 4 },
+    icon:  { marginEnd: 4 },
   }), [colors.dark]);
 
   return (

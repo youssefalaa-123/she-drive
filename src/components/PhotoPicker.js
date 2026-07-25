@@ -5,49 +5,40 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
-import { auth } from '../firebase/config';
 import { colors } from '../theme';
 
-async function getFirebaseToken() {
-  try {
-    return (await auth.currentUser?.getIdToken()) ?? null;
-  } catch (_) {
-    return null;
+// Converts a base64 string to an ArrayBuffer without any external package.
+// atob() is a global available in React Native 0.73+ (Expo SDK 54) and all browsers.
+function base64ToArrayBuffer(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
+  return bytes.buffer;
 }
 
-async function getUploadSignature(folder) {
-  const token = await getFirebaseToken();
-  if (!token) throw new Error('Not authenticated');
-  const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
-    body: { folder },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (error || !data?.signature) throw new Error('Could not get upload signature');
-  return data; // { signature, timestamp, api_key, cloud_name }
-}
+// Uploads an ArrayBuffer (decoded from base64) to Supabase Storage bucket 'avatars'.
+// Returns the permanent public URL of the uploaded file.
+async function uploadToStorage(base64, storagePath) {
+  if (!base64) throw new Error('No image data received from picker. Ensure base64:true is set.');
 
-async function uploadToCloudinary(uri, folder) {
-  const { signature, timestamp, api_key, cloud_name } = await getUploadSignature(folder);
-  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`;
+  const arrayBuffer = base64ToArrayBuffer(base64);
+  const filename = `${Date.now()}.jpg`;
+  const path = `${storagePath}/${filename}`;
 
-  const formData = new FormData();
-  if (Platform.OS === 'web') {
-    const res = await fetch(uri);
-    const blob = await res.blob();
-    formData.append('file', blob, 'photo.jpg');
-  } else {
-    formData.append('file', { uri, type: 'image/jpeg', name: 'photo.jpg' });
+  const { data, error } = await supabase.storage
+    .from('avatars')
+    .upload(path, arrayBuffer, { contentType: 'image/jpeg', upsert: true });
+
+  if (error) {
+    console.error('[PhotoPicker] storage.upload error:', error);
+    throw new Error(error.message || 'Upload to storage failed');
   }
-  formData.append('folder',    folder);
-  formData.append('timestamp', String(timestamp));
-  formData.append('api_key',   api_key);
-  formData.append('signature', signature);
 
-  const res  = await fetch(uploadUrl, { method: 'POST', body: formData });
-  const data = await res.json();
-  if (data.secure_url) return data.secure_url;
-  throw new Error(data.error?.message || 'Upload failed');
+  const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(data.path);
+  console.log('[PhotoPicker] uploaded successfully:', publicUrl);
+  return publicUrl;
 }
 
 async function launchPicker(useCamera) {
@@ -57,7 +48,12 @@ async function launchPicker(useCamera) {
       Alert.alert('Permission Needed', 'Camera access is required.');
       return null;
     }
-    return ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.75 });
+    return ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true, // required — we upload the base64 string, not the file:// URI
+    });
   } else {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -66,13 +62,18 @@ async function launchPicker(useCamera) {
     }
     return ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, aspect: [1, 1], quality: 0.75,
+      // allowsEditing on web can silently return assets:[] in Expo SDK 54 — skip it on web
+      allowsEditing: Platform.OS !== 'web',
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true, // required — we upload the base64 string, not the file:// URI
     });
   }
 }
 
 export default function PhotoPicker({ label, value, onChange, storagePath, size = 100 }) {
   const [uploading, setUploading] = useState(false);
+  const [localUri, setLocalUri] = useState(null);
 
   const handlePress = () => {
     if (Platform.OS === 'web') {
@@ -89,16 +90,27 @@ export default function PhotoPicker({ label, value, onChange, storagePath, size 
   const runPick = async (useCamera) => {
     const result = await launchPicker(useCamera);
     if (!result || result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    // Show the local URI immediately as an optimistic preview
+    setLocalUri(asset.uri);
     setUploading(true);
+
     try {
-      const url = await uploadToCloudinary(result.assets[0].uri, storagePath);
+      // Upload the base64 data (not the URI) — this works on all platforms
+      const url = await uploadToStorage(asset.base64, storagePath);
+      setLocalUri(null); // parent will supply the confirmed remote URL via the value prop
       onChange(url);
     } catch (err) {
-      Alert.alert('Upload Failed', 'Could not upload photo. Please try again.');
+      console.error('[PhotoPicker] upload error:', err.message);
+      setLocalUri(null);
+      Alert.alert('Upload Failed', err.message || 'Could not upload photo. Please try again.');
     } finally {
       setUploading(false);
     }
   };
+
+  const displayUri = localUri || value;
 
   return (
     <TouchableOpacity
@@ -110,8 +122,11 @@ export default function PhotoPicker({ label, value, onChange, storagePath, size 
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.uploadText}>Uploading…</Text>
         </View>
-      ) : value ? (
-        <Image source={{ uri: value }} style={[styles.preview, { width: size, height: size, borderRadius: size / 2 }]} />
+      ) : displayUri ? (
+        <Image
+          source={{ uri: displayUri }}
+          style={[styles.preview, { width: size, height: size, borderRadius: size / 2 }]}
+        />
       ) : (
         <View style={styles.inner}>
           <Text style={styles.icon}>📷</Text>

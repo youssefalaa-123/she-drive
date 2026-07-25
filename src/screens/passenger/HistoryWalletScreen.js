@@ -4,9 +4,8 @@ import {
   TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
 import { supabase } from '../../lib/supabase';
+import { toRide, toWalletEntry } from '../../lib/transforms';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/SettingsContext';
 import WalletTopUpModal from '../../components/WalletTopUpModal';
@@ -25,48 +24,77 @@ export default function HistoryWalletScreen() {
   const [ratingVal, setRatingVal] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [walletHistory, setWalletHistory] = useState([]);
+  const [walletHistoryLoading, setWalletHistoryLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, 'rides'),
-      where('passengerId', '==', user.uid),
-      where('status', '==', 'completed')
-    );
-    return onSnapshot(q,
-      (snap) => {
-        const sorted = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-        setRides(sorted);
-        setLoading(false);
-      },
-      () => setLoading(false)
-    );
+
+    const fetchRides = async () => {
+      const { data } = await supabase
+        .from('rides')
+        .select('*')
+        .eq('passenger_id', user.uid)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
+      if (data) setRides(data.map(toRide));
+      setLoading(false);
+    };
+    fetchRides();
+
+    const channel = supabase
+      .channel('hw_rides_' + user.uid)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'rides',
+        filter: `passenger_id=eq.${user.uid}`,
+      }, fetchRides)
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchHistory = async () => {
+      const { data } = await supabase
+        .from('wallet_history')
+        .select('*')
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: false });
+      if (data) setWalletHistory(data.map(toWalletEntry));
+      setWalletHistoryLoading(false);
+    };
+    fetchHistory();
+
+    const channel = supabase
+      .channel('hw_wallet_' + user.uid)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'wallet_history',
+        filter: `user_id=eq.${user.uid}`,
+      }, fetchHistory)
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, [user]);
 
   const handleRateSubmit = async () => {
     if (!ratingRide || ratingSubmitting) return;
     setRatingSubmitting(true);
     try {
-      await updateDoc(doc(db, 'rides', ratingRide.id), { passengerRating: ratingVal });
+      await supabase.from('rides').update({
+        passenger_rating:  ratingVal,
+        passenger_comment: ratingComment.trim(),
+      }).eq('id', ratingRide.id);
+
       if (ratingVal > 0 && ratingRide.driverId) {
-        try {
-          const driverSnap = await getDoc(doc(db, 'users', ratingRide.driverId));
-          if (driverSnap.exists()) {
-            const d = driverSnap.data();
-            const newCount = (d.ratingCount || 0) + 1;
-            const newRating = ((d.rating || 0) * (d.ratingCount || 0) + ratingVal) / newCount;
-            await updateDoc(doc(db, 'users', ratingRide.driverId), { rating: newRating, ratingCount: newCount });
-          }
-        } catch (_) {}
         supabase.from('reviews').insert({
-          ride_id: ratingRide.id,
-          driver_id: ratingRide.driverId,
-          passenger_id: user.uid,
+          ride_id:        ratingRide.id,
+          driver_id:      ratingRide.driverId,
+          passenger_id:   user.uid,
           passenger_name: userProfile?.name,
-          rating: ratingVal,
-          comment: ratingComment.trim() || null,
+          rating:         ratingVal,
+          comment:        ratingComment.trim() || null,
         }).then(() => {});
       }
       setRatingRide(null);
@@ -83,6 +111,13 @@ export default function HistoryWalletScreen() {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
     return d.toLocaleDateString('en-EG', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatDateTime = (ts) => {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-EG', { day: 'numeric', month: 'short' }) + ', ' +
+      d.toLocaleTimeString('en-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   return (
@@ -209,16 +244,33 @@ export default function HistoryWalletScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNum}>{userProfile?.totalTrips || 0}</Text>
-              <Text style={styles.statLabel}>{t('totalTrips')}</Text>
+          <Text style={styles.historyTitle}>{t('walletHistory')}</Text>
+          {walletHistoryLoading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginBottom: 16 }} />
+          ) : walletHistory.length === 0 ? (
+            <View style={[styles.empty, { marginTop: 0, marginBottom: 20 }]}>
+              <Text style={styles.emptyText}>{t('noWalletHistory')}</Text>
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNum}>{userProfile?.badges || 0}</Text>
-              <Text style={styles.statLabel}>🏅 {t('badgesLabel')}</Text>
-            </View>
-          </View>
+          ) : (
+            walletHistory.map((entry) => (
+              <View key={entry.id} style={styles.txCard}>
+                <View style={[styles.txIcon, { backgroundColor: entry.amount >= 0 ? '#DCFCE7' : '#FEE2E2' }]}>
+                  <Ionicons
+                    name={entry.amount >= 0 ? 'arrow-down-outline' : 'arrow-up-outline'}
+                    size={18}
+                    color={entry.amount >= 0 ? colors.success : colors.error}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.txDesc}>{entry.description}</Text>
+                  <Text style={styles.txDate}>{formatDateTime(entry.createdAt)}</Text>
+                </View>
+                <Text style={[styles.txAmount, { color: entry.amount >= 0 ? colors.success : colors.error }]}>
+                  {entry.amount >= 0 ? '+' : ''}{entry.amount} {t('egp')}
+                </Text>
+              </View>
+            ))
+          )}
 
           <View style={styles.howItWorksCard}>
             <Text style={styles.howTitle}>{t('howWalletWorks')}</Text>
@@ -274,13 +326,15 @@ function makeStyles(colors, shadow) {
       paddingVertical: 10, paddingHorizontal: 20,
     },
     topupText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-    statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-    statCard: { flex: 1, backgroundColor: colors.white, borderRadius: 16, padding: 20, alignItems: 'center', ...shadow.sm },
-    statNum: { fontSize: 32, fontWeight: '800', color: colors.primary },
-    statLabel: { fontSize: 13, color: colors.gray, marginTop: 4 },
     howItWorksCard: { backgroundColor: colors.white, borderRadius: 16, padding: 20, ...shadow.sm },
     howTitle: { fontSize: 15, fontWeight: '700', color: colors.dark, marginBottom: 12 },
     howItem: { fontSize: 14, color: colors.gray, marginBottom: 8, lineHeight: 20 },
+    historyTitle: { fontSize: 15, fontWeight: '700', color: colors.dark, marginBottom: 10 },
+    txCard: { backgroundColor: colors.white, borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadow.sm },
+    txIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    txDesc: { fontSize: 13, color: colors.dark, fontWeight: '600' },
+    txDate: { fontSize: 11, color: colors.gray, marginTop: 2 },
+    txAmount: { fontSize: 14, fontWeight: '800' },
     rateNowBtn: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.primaryBg, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: colors.primary + '60' },
     rateNowText: { fontSize: 12, color: colors.primary, fontWeight: '700' },
     ratingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },

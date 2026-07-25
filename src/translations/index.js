@@ -1,4 +1,4 @@
-const strings = {
+﻿const strings = {
   en: {
     // Navigation
     book: 'Book', history: 'History', profile: 'Profile',
@@ -140,11 +140,29 @@ const strings = {
     addFunds: 'Add Funds',
     walletHistory: 'Wallet History',
     noWalletHistory: 'No transactions yet',
+    noWalletHistoryFilter: 'No transactions of this type.',
     howWalletWorks: 'How Wallet Works',
     topUpToPay: '• Top up to pay for rides',
     firstTripDiscount: '• 15% off your very first trip',
     earnBadge: '• Earn a badge every 10 trips',
     totalTrips: 'Total Trips',
+    totalAdded: 'Total Added',
+    totalSpent: 'Total Spent',
+    allTx: 'All',
+    moneyIn: 'Money In',
+    moneyOut: 'Money Out',
+    txEarlyEarnings: 'Early Earnings',
+    txAdminRefund: 'Admin Refund',
+    txTopUp: 'Wallet Top-Up',
+    txTripPayment: 'Trip Payment',
+    txCancellationFee: 'Cancellation Fee',
+    txNoShowFee: 'No-Show Fee',
+    txWaitFee: 'Wait Time Fee',
+    txRefund: 'Refund',
+    txTripEarnings: 'Trip Earnings',
+    txCommissionDebit: 'Commission Fee',
+    txNoShowCredit: 'No-Show Fee Received',
+    txWithdrawal: 'Withdrawal',
 
     // Profiles (shared)
     myBadges: 'My Badges',
@@ -182,6 +200,7 @@ const strings = {
     accept: 'Accept', decline: 'Decline',
     fareLabel: 'Fare',
     distanceAway: 'km away',
+    duration: 'Trip time',
     cannotGoOnline: 'Cannot Go Online',
     debtLimitMsg: 'Your wallet owes %d EGP. Please top up before going online.',
     outstandingCommission: 'Outstanding Commission',
@@ -231,6 +250,9 @@ const strings = {
     appVersion: 'App Version',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
+    iAgreeToTerms: 'I Agree to the Terms of Service',
+    iAgreePrefix: 'I agree to the',
+    pleaseAcceptTerms: 'Please read and accept the Terms of Service to continue.',
     signOutConfirm: 'Sign Out',
     signOutMsg: 'Are you sure you want to sign out?',
     comingSoon: 'Coming Soon',
@@ -257,6 +279,16 @@ const strings = {
     yourEarnings: 'Your Earnings',
     cashCollectedNote: 'Cash collected from passenger.\nCommission deducted from your wallet.',
     earningsAddedNote: 'Earnings added to your wallet.',
+
+    // Payment clearing — end-of-trip driver UI
+    collectFromPassenger: 'Collect from Passenger',
+    coveredByWallet: 'covered by wallet',
+    tripPaidDigitally: 'Trip Paid Digitally',
+    doNotCollectCash: 'Do Not Collect Cash',
+    commissionDeducted: '15% commission (%d EGP) deducted from your wallet',
+    walletTopUpLabel: 'Platform Top-Up',
+    cashCollectedLabel: 'Cash Collected',
+    cashDebtLimitMsg: 'Your wallet is below −200 EGP. Top up before accepting cash rides.',
     iArrivedAtPickup: "I've Arrived at Pickup",
     openInMaps: 'Open in Maps',
     startTrip: 'Start Trip',
@@ -286,24 +318,15 @@ const strings = {
     whatPassengersSay: 'What passengers say',
     gotItThanks: 'Got it, thanks!',
     passengerLabel: 'Passenger',
-    aiReportTitle: '✨ AI Performance Report',
-    aiReportSub: 'Get a personalised summary powered by Claude',
-    thisWeek: '📅 This Week',
-    thisMonth: '🗓 This Month',
-    weeklyReport: '📅 Weekly Performance Report',
-    monthlyReport: '🗓 Monthly Performance Report',
-    claudeAnalysing: 'Claude is analysing your trips…',
-    reportError: 'Could not generate report. Please try again later.',
-    earnedLabel: 'Earned',
-    avgRatingLabel: 'Avg Rating',
     closeBtn: 'Close',
-    viewFullReport: 'View Full Report',
-    passengerComments: '💬 Passenger Comments',
+    todayEarnings: "Today's Earnings",
+    recentTripsLabel: 'Recent Trips',
     recenterMap: 'Re-center',
     driverArriving: 'Driver arriving in',
 
     // Phone & pickup note
     copyNumber: 'Copy',
+    call: 'Call',
     numberCopied: 'Copied!',
     driverPhone: "Driver's Phone",
     passengerPhone: "Passenger's Phone",
@@ -319,6 +342,7 @@ const strings = {
     cancelBid: 'Cancel Offer',
     offerToDrive: 'Offer to Drive',
     notSelectedMsg: 'You were not selected for this trip.',
+    rideNoLongerAvailable: 'This ride is no longer available.',
 
     // Cancel & re-search
     driverCancelConfirmMsg: 'Cancel this ride? No cancellation fee will be charged. We\'ll find a new driver automatically.',
@@ -342,6 +366,24 @@ const strings = {
     // Share Ride
     shareRide: 'Share My Ride',
     shareRideCopied: 'Ride details copied. Paste to send to someone you trust.',
+
+    // Grace period & wait-time fee
+    gracePeriodHeading: 'Driver has arrived!',
+    gracePeriodSub: 'Please board within',
+    gracePeriodFree: 'Free grace period',
+    waitFeeRunning: 'Wait Fee Active',
+    waitFeeAddedSub: 'Added to your final fare',
+    cancelFreeWindowMsg: 'Cancel for free — you are within the 2-minute grace window after the driver accepted.',
+    cancelFaultMsg: 'Cancel for free — the driver has exceeded the estimated arrival time.',
+    cancelPenaltyMsg: 'A %d EGP cancellation fee will be charged. Cancel anyway?',
+    debtLockedMsg: 'Your account has an outstanding balance from a previous cancellation. Please top up your wallet to book a new ride.',
+
+    // Driver — wait & no-show
+    graceDriverHeading: 'Passenger has %d min to board',
+    waitFeeDriver: 'Wait fee: +%s EGP (%d min)',
+    noShowBtn: 'Cancel: Passenger No-Show',
+    noShowConfirmMsg: 'The passenger has not boarded after %d1 minutes. Cancel and charge %d2 EGP cancellation fee?',
+    waitFeeLabel: 'Wait Time Fee',
 
     // Network
     backOnline: '✓ Back online',
@@ -400,6 +442,7 @@ const strings = {
     networkError: 'No internet connection. Check your network.',
     noSheDriveAccount: 'No She Drive account found with this email address.',
     resetFailed: 'Something went wrong. Please try again.',
+    genericError: 'Something went wrong. Please try again.',
     invalidEmail: 'Invalid Email',
     invalidEmailMsg: 'Please enter a valid email address.',
     enterValidEmail: 'Please enter a valid email address.',
@@ -412,6 +455,9 @@ const strings = {
     emailAlreadyInUse: 'An account with this email already exists.',
     allPhotosRequired: 'All Photos Required',
     allPhotosRequiredMsg: "Please upload all 4 photos: profile, vehicle, National ID, and Driver's License.",
+    passengerPhotosRequiredMsg: 'Please upload your profile photo and national ID photo.',
+    requiredPhotos: 'Required Photos',
+    required: 'Required',
     photoProfile: 'Profile Photo',
     photoVehicle: 'Vehicle Photo',
     photoNationalId: 'National ID',
@@ -419,9 +465,6 @@ const strings = {
     backArrow: '← Back',
     fillAllFieldsMsg: 'Please fill in all fields.',
     submissionFailed: 'Could not complete submission. Please try again.',
-
-    // AI fallback
-    aiUnavailableLocalStats: 'AI analysis unavailable. Showing your stats from local data.',
 
     // Admin Dashboard
     adminDashboard: 'Admin Dashboard',
@@ -442,10 +485,9 @@ const strings = {
     noDrivers: 'No approved drivers found.',
     owes: 'Owes',
 
-    // Policy text
+    // Policy text (EN)
     privacyPolicyText: 'Privacy Policy — She Drive\n\nLast updated: July 2026\n\n1. Information We Collect\nWe collect personal information you provide when registering, including your name, email address, phone number, and location data during active trips only.\n\n2. How We Use Your Information\n• To match passengers with nearby female drivers\n• To process payments and maintain wallet balances\n• To improve our services and safety features\n• To communicate service updates and support messages\n\n3. Data Sharing\nWe do not sell your personal data to any third party. Trip details are shared only between the passenger and driver involved in that specific ride.\n\n4. Location Data\nLocation is collected only while the app is in use during an active trip. Tracking stops automatically when the trip ends.\n\n5. Payment Security\nCard numbers are never fully stored on our servers. Only the last 4 digits and expiry date are saved for your reference. CVV is never stored.\n\n6. Data Retention\nAccount data is retained while your account is active. You may request full deletion by contacting our support team.\n\n7. Children\'s Privacy\nShe Drive is intended for users aged 18 and above only. We do not knowingly collect data from minors.\n\n8. Your Rights\nYou may request access to, correction of, or deletion of your personal data at any time by contacting us at shedrive.eg.app@gmail.com.\n\n9. Contact Us\nFor any privacy concerns: shedrive.eg.app@gmail.com',
 
-    termsOfServiceText: 'Terms of Service — She Drive\n\nLast updated: July 2026\n\n1. Acceptance of Terms\nBy downloading, accessing, or using She Drive, you agree to be bound by these Terms of Service. If you do not agree, please do not use the app.\n\n2. Eligibility\nShe Drive is exclusively for female passengers and female drivers. All users must be at least 18 years of age. By using the app you confirm you meet these requirements.\n\n3. Driver Requirements\nDrivers must submit valid government-issued ID, driver\'s license, and vehicle registration. Accounts are manually reviewed and activated only after admin approval.\n\n4. Payments & Commission Structure\n• Cash trips: 15% commission automatically deducted from the driver\'s wallet after each completed trip\n• Card / Wallet trips: 85% of the fare is credited directly to the driver\'s wallet\n• Wallet top-ups are non-refundable once processed\n• A 3% card processing fee is added to passenger fares on card payments\n• Drivers with a wallet balance below -300 EGP cannot go online until the balance is restored\n\n5. First-Ride Discount\nNew passengers receive a 15% discount on their first completed trip. This discount is automatically applied and cannot be combined with other offers.\n\n6. Cancellations\nIf a passenger cancels a ride after the driver has accepted it, a 10 EGP cancellation fee will be automatically deducted from the passenger\'s wallet. No fee is charged if the ride is cancelled before a driver accepts. Excessive cancellations may result in temporary or permanent account suspension.\n\n7. User Conduct\nAll users must treat each other with respect and dignity. Harassment, discrimination, verbal abuse, or any threatening behavior will result in immediate and permanent account termination.\n\n8. Liability\nShe Drive is a technology platform that connects passengers with independent drivers. She Drive is not liable for incidents, accidents, or losses occurring during trips. However, we take safety seriously and investigate all reported incidents.\n\n9. Account Termination\nWe reserve the right to suspend or permanently terminate any account found in violation of these terms, applicable laws, or that poses a safety risk.\n\n10. Changes to Terms\nWe may update these Terms at any time. Your continued use of the app after changes constitutes acceptance of the updated Terms.\n\n11. Governing Law\nThese Terms are governed by the laws of the Arab Republic of Egypt.\n\n12. Contact\nFor support and inquiries: shedrive.eg.app@gmail.com',
   },
 
   ar: {
@@ -589,11 +631,29 @@ const strings = {
     addFunds: 'إضافة رصيد',
     walletHistory: 'سجل المحفظة',
     noWalletHistory: 'لا توجد معاملات بعد',
+    noWalletHistoryFilter: 'لا توجد معاملات من هذا النوع.',
     howWalletWorks: 'كيف تعمل المحفظة',
     topUpToPay: '• اشحني للدفع مقابل الرحلات',
     firstTripDiscount: '• خصم 15% على رحلتكِ الأولى',
     earnBadge: '• احصلي على شارة كل 10 رحلات',
     totalTrips: 'إجمالي الرحلات',
+    totalAdded: 'إجمالي المضاف',
+    totalSpent: 'إجمالي المنفق',
+    allTx: 'الكل',
+    moneyIn: 'رصيد مضاف',
+    moneyOut: 'رصيد مخصوم',
+    txEarlyEarnings: 'أرباح مبكرة',
+    txAdminRefund: 'استرداد من الإدارة',
+    txTopUp: 'شحن المحفظة',
+    txTripPayment: 'دفع رحلة',
+    txCancellationFee: 'رسوم الإلغاء',
+    txNoShowFee: 'رسوم عدم الحضور',
+    txWaitFee: 'رسوم وقت الانتظار',
+    txRefund: 'استرداد رصيد',
+    txTripEarnings: 'أرباح الرحلة',
+    txCommissionDebit: 'عمولة المنصة',
+    txNoShowCredit: 'رسوم غياب الراكبة',
+    txWithdrawal: 'سحب رصيد',
 
     // Profiles
     myBadges: 'شاراتي',
@@ -631,6 +691,7 @@ const strings = {
     accept: 'قبول', decline: 'رفض',
     fareLabel: 'الأجرة',
     distanceAway: 'كم منكِ',
+    duration: 'مدة الرحلة',
     cannotGoOnline: 'لا يمكن التفعيل',
     debtLimitMsg: 'محفظتكِ مديونة %d جنيه. يرجى الشحن قبل التفعيل.',
     outstandingCommission: 'عمولة مستحقة',
@@ -680,6 +741,9 @@ const strings = {
     appVersion: 'إصدار التطبيق',
     privacyPolicy: 'سياسة الخصوصية',
     termsOfService: 'شروط الخدمة',
+    iAgreeToTerms: 'أوافق على شروط الخدمة',
+    iAgreePrefix: 'أوافق على',
+    pleaseAcceptTerms: 'يرجى قراءة شروط الخدمة والموافقة عليها للمتابعة.',
     signOutConfirm: 'تسجيل الخروج',
     signOutMsg: 'هل أنتِ متأكدة من تسجيل الخروج؟',
     comingSoon: 'قريباً',
@@ -706,6 +770,16 @@ const strings = {
     yourEarnings: 'أرباحك',
     cashCollectedNote: 'تم تحصيل النقود من الراكبة.\nتم خصم العمولة من محفظتك.',
     earningsAddedNote: 'تمت إضافة الأرباح إلى محفظتك.',
+
+    // Payment clearing — end-of-trip driver UI
+    collectFromPassenger: 'اجمعي من الراكبة',
+    coveredByWallet: 'مدفوعة من المحفظة',
+    tripPaidDigitally: 'الرحلة مدفوعة رقمياً',
+    doNotCollectCash: 'لا تجمعي نقوداً',
+    commissionDeducted: 'تم خصم عمولة 15% (%d جنيه) من محفظتك',
+    walletTopUpLabel: 'إضافة المنصة',
+    cashCollectedLabel: 'النقود المحصلة',
+    cashDebtLimitMsg: 'رصيد محفظتك أقل من −200 جنيه. يرجى الشحن قبل قبول رحلات الكاش.',
     iArrivedAtPickup: 'وصلت لنقطة الانطلاق',
     openInMaps: 'فتح في الخرائط',
     startTrip: 'بدء الرحلة',
@@ -735,24 +809,15 @@ const strings = {
     whatPassengersSay: 'ماذا قالت الراكبات',
     gotItThanks: 'فهمت، شكراً!',
     passengerLabel: 'راكبة',
-    aiReportTitle: '✨ تقرير الأداء بالذكاء الاصطناعي',
-    aiReportSub: 'احصلي على ملخص شخصي مدعوم بـ Claude',
-    thisWeek: '📅 هذا الأسبوع',
-    thisMonth: '🗓 هذا الشهر',
-    weeklyReport: '📅 تقرير الأداء الأسبوعي',
-    monthlyReport: '🗓 تقرير الأداء الشهري',
-    claudeAnalysing: 'كلود يحلّل رحلاتك…',
-    reportError: 'تعذّر إنشاء التقرير. يرجى المحاولة لاحقاً.',
-    earnedLabel: 'مكتسب',
-    avgRatingLabel: 'متوسط التقييم',
     closeBtn: 'إغلاق',
-    viewFullReport: 'عرض التقرير الكامل',
-    passengerComments: '💬 تعليقات الراكبات',
+    todayEarnings: 'أرباح اليوم',
+    recentTripsLabel: 'الرحلات الأخيرة',
     recenterMap: 'إعادة التمركز',
     driverArriving: 'السائقة تصل في',
 
     // Phone & pickup note
     copyNumber: 'نسخ',
+    call: 'اتصال',
     numberCopied: 'تم النسخ!',
     driverPhone: 'رقم السائقة',
     passengerPhone: 'رقم الراكبة',
@@ -768,6 +833,7 @@ const strings = {
     cancelBid: 'إلغاء العرض',
     offerToDrive: 'عرض القيادة',
     notSelectedMsg: 'لم يتم اختيارك لهذه الرحلة.',
+    rideNoLongerAvailable: 'هذه الرحلة لم تعد متاحة.',
 
     // Cancel & re-search
     driverCancelConfirmMsg: 'إلغاء الرحلة؟ لن يتم خصم أي رسوم وسيتم البحث تلقائياً عن سائقة جديدة.',
@@ -791,6 +857,24 @@ const strings = {
     // Share Ride
     shareRide: 'مشاركة رحلتي',
     shareRideCopied: 'تم نسخ تفاصيل الرحلة. الصقيها لإرسالها لمن تثقين به.',
+
+    // Grace period & wait-time fee
+    gracePeriodHeading: 'وصلت السائقة!',
+    gracePeriodSub: 'يرجى الركوب خلال',
+    gracePeriodFree: 'فترة الانتظار المجانية',
+    waitFeeRunning: 'رسوم الانتظار نشطة',
+    waitFeeAddedSub: 'ستُضاف إلى فاتورتك النهائية',
+    cancelFreeWindowMsg: 'الإلغاء مجاني — أنتِ ضمن نافذة الدقيقتين بعد قبول السائقة.',
+    cancelFaultMsg: 'الإلغاء مجاني — تأخرت السائقة عن الوقت المقدر للوصول.',
+    cancelPenaltyMsg: 'سيتم خصم %d جنيه كرسوم إلغاء. هل تريدين المتابعة؟',
+    debtLockedMsg: 'حسابك لديه رصيد مديونية من إلغاء سابق. يرجى شحن محفظتك لحجز رحلة جديدة.',
+
+    // Driver — wait & no-show
+    graceDriverHeading: 'تبقى %d دقيقة للراكبة للصعود',
+    waitFeeDriver: 'رسوم الانتظار: +%s جنيه (%d دقيقة)',
+    noShowBtn: 'إلغاء: عدم ظهور الراكبة',
+    noShowConfirmMsg: 'لم تصعد الراكبة بعد %d1 دقائق. هل تلغي الرحلة وتخصم %d2 جنيه؟',
+    waitFeeLabel: 'رسوم الانتظار',
 
     // Network
     backOnline: '✓ عاد الاتصال بالإنترنت',
@@ -849,6 +933,7 @@ const strings = {
     networkError: 'لا يوجد اتصال بالإنترنت. تحققي من شبكتك.',
     noSheDriveAccount: 'لا يوجد حساب شي درايف بهذا البريد الإلكتروني.',
     resetFailed: 'حدث خطأ ما. يرجى المحاولة مجدداً.',
+    genericError: 'حدث خطأ ما. يرجى المحاولة مجدداً.',
     invalidEmail: 'بريد إلكتروني غير صالح',
     invalidEmailMsg: 'يرجى إدخال بريد إلكتروني صحيح.',
     enterValidEmail: 'يرجى إدخال بريد إلكتروني صحيح.',
@@ -861,6 +946,9 @@ const strings = {
     emailAlreadyInUse: 'يوجد حساب بهذا البريد الإلكتروني بالفعل.',
     allPhotosRequired: 'جميع الصور مطلوبة',
     allPhotosRequiredMsg: 'يرجى رفع جميع الصور الأربع: الملف الشخصي، السيارة، الهوية الوطنية، ورخصة القيادة.',
+    passengerPhotosRequiredMsg: 'يرجى رفع صورة ملفك الشخصي وصورة الهوية الوطنية.',
+    requiredPhotos: 'الصور المطلوبة',
+    required: 'مطلوب',
     photoProfile: 'صورة الملف الشخصي',
     photoVehicle: 'صورة السيارة',
     photoNationalId: 'الهوية الوطنية',
@@ -868,9 +956,6 @@ const strings = {
     backArrow: '→ رجوع',
     fillAllFieldsMsg: 'يرجى ملء جميع الحقول.',
     submissionFailed: 'تعذّر إتمام الإرسال. يرجى المحاولة مجدداً.',
-
-    // AI fallback
-    aiUnavailableLocalStats: 'تحليل الذكاء الاصطناعي غير متاح. عرض إحصائياتك المحلية.',
 
     // Admin Dashboard
     adminDashboard: 'لوحة التحكم',
@@ -893,8 +978,6 @@ const strings = {
 
     // Policy text (Arabic)
     privacyPolicyText: 'سياسة الخصوصية — شي درايف\n\nآخر تحديث: يوليو 2026\n\n1. المعلومات التي نجمعها\nنجمع المعلومات الشخصية التي تقدمينها عند التسجيل، بما في ذلك اسمك وعنوان بريدك الإلكتروني ورقم هاتفك وبيانات الموقع خلال الرحلات النشطة فقط.\n\n2. كيف نستخدم معلوماتك\n• لمطابقة الراكبات مع السائقات القريبات منهن\n• لمعالجة المدفوعات والحفاظ على أرصدة المحفظة\n• لتحسين خدماتنا وميزات السلامة\n• للتواصل بشأن تحديثات الخدمة ورسائل الدعم\n\n3. مشاركة البيانات\nلا نبيع بياناتك الشخصية لأي طرف ثالث. يتم مشاركة تفاصيل الرحلة فقط بين الراكبة والسائقة المشاركتين في تلك الرحلة المحددة.\n\n4. بيانات الموقع\nيتم جمع الموقع فقط أثناء استخدام التطبيق خلال رحلة نشطة. يتوقف التتبع تلقائياً عند انتهاء الرحلة.\n\n5. أمان الدفع\nلا يتم تخزين أرقام البطاقات كاملةً على خوادمنا. يتم حفظ آخر 4 أرقام وتاريخ الانتهاء فقط للرجوع إليها. لا يتم تخزين رمز CVV أبداً.\n\n6. الاحتفاظ بالبيانات\nيتم الاحتفاظ ببيانات الحساب طالما كان حسابك نشطاً. يمكنك طلب الحذف الكامل عن طريق التواصل مع فريق الدعم لدينا.\n\n7. خصوصية الأطفال\nشي درايف مخصصة للمستخدمات من عمر 18 عاماً فما فوق فقط. لا نجمع بيانات من القاصرات عن علم.\n\n8. حقوقك\nيمكنك طلب الوصول إلى بياناتك الشخصية أو تصحيحها أو حذفها في أي وقت عن طريق التواصل معنا على shedrive.eg.app@gmail.com.\n\n9. اتصلي بنا\nلأي مخاوف تتعلق بالخصوصية: shedrive.eg.app@gmail.com',
-
-    termsOfServiceText: 'شروط الخدمة — شي درايف\n\nآخر تحديث: يوليو 2026\n\n1. قبول الشروط\nبتنزيلك أو دخولك أو استخدامك لتطبيق شي درايف، توافقين على الالتزام بشروط الخدمة هذه. إذا كنتِ لا توافقين، يرجى عدم استخدام التطبيق.\n\n2. الأهلية\nشي درايف حصرياً للراكبات والسائقات من الإناث. يجب أن يكون عمر جميع المستخدمات 18 عاماً على الأقل. باستخدامك للتطبيق تؤكدين استيفاءك لهذه المتطلبات.\n\n3. متطلبات السائقة\nيجب على السائقات تقديم بطاقة هوية حكومية سارية ورخصة قيادة وتسجيل المركبة. تتم مراجعة الحسابات يدوياً ولا يتم تفعيلها إلا بعد موافقة المشرف.\n\n4. المدفوعات وهيكل العمولة\n• رحلات النقد: يتم خصم عمولة 15% تلقائياً من محفظة السائقة بعد كل رحلة مكتملة\n• رحلات البطاقة/المحفظة: يُضاف 85% من الأجرة مباشرةً إلى محفظة السائقة\n• عمليات شحن المحفظة غير قابلة للاسترداد بعد معالجتها\n• تُضاف رسوم معالجة بطاقة 3% على أجور الراكبات في مدفوعات البطاقة\n• لا يمكن للسائقات اللواتي رصيد محفظتهن أقل من -300 جنيه الدخول في وضع التوفر حتى تتم تسوية الرصيد\n\n5. خصم أول رحلة\nتحصل الراكبات الجدد على خصم 15% على أول رحلة مكتملة. يتم تطبيق هذا الخصم تلقائياً ولا يمكن دمجه مع عروض أخرى.\n\n6. الإلغاءات\nإذا ألغت الراكبة رحلةً بعد قبول السائقة لها، سيتم خصم رسوم إلغاء قدرها 10 جنيه تلقائياً من محفظة الراكبة. لا تُفرض أي رسوم إذا تم إلغاء الرحلة قبل قبول السائقة. قد يؤدي الإلغاء المفرط إلى تعليق الحساب مؤقتاً أو دائماً.\n\n7. سلوك المستخدمة\nيجب على جميع المستخدمات معاملة بعضهن باحترام وكرامة. يؤدي التحرش أو التمييز أو الإساءة اللفظية أو أي سلوك مهدد إلى إنهاء الحساب فوراً وبشكل دائم.\n\n8. المسؤولية\nشي درايف هي منصة تكنولوجية تربط الراكبات بالسائقات المستقلات. شي درايف غير مسؤولة عن الحوادث أو الخسائر التي تحدث خلال الرحلات. ومع ذلك، نأخذ السلامة بجدية ونحقق في جميع الحوادث المبلغ عنها.\n\n9. إنهاء الحساب\nنحتفظ بالحق في تعليق أو إنهاء أي حساب يخالف هذه الشروط أو القوانين المعمول بها أو يشكّل خطراً على السلامة.\n\n10. التغييرات على الشروط\nقد نحدّث هذه الشروط في أي وقت. استمرارك في استخدام التطبيق بعد التغييرات يُعدّ قبولاً للشروط المحدثة.\n\n11. القانون الحاكم\nتخضع هذه الشروط لقوانين جمهورية مصر العربية.\n\n12. التواصل\nللدعم والاستفسارات: shedrive.eg.app@gmail.com',
   },
 };
 

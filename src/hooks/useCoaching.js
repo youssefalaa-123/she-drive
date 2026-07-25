@@ -51,21 +51,10 @@ export async function generateCoachingMessage(passengerId) {
     if (!token) return null;
     const { data } = await supabase.functions.invoke('generate-coaching', {
       body: { passenger_id: passengerId },
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 'x-firebase-token': `Bearer ${token}` },
     });
     return data;
   } catch (_) {
     return null;
   }
-}
-
-export async function generateDriverSummary(payload) {
-  const token = await getFirebaseToken();
-  if (!token) throw new Error('Not authenticated');
-  const { data, error } = await supabase.functions.invoke('generate-driver-summary', {
-    body: payload,
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (error) throw new Error(error.message || 'Edge function error');
-  return data;
 }

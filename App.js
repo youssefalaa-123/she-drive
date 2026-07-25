@@ -1,3 +1,10 @@
+if (!__DEV__) {
+  // eslint-disable-next-line no-console
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+}
+
 import 'react-native-gesture-handler';
 import { enableScreens } from 'react-native-screens';
 import React from 'react';
@@ -9,6 +16,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
+import NetworkBanner from './src/components/NetworkBanner';
 import { queryClient } from './src/lib/queryClient';
 
 enableScreens();
@@ -25,6 +33,7 @@ function AppShell() {
           <AuthProvider>
             <RootNavigator />
             <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+            <NetworkBanner />
           </AuthProvider>
         </ErrorBoundary>
       </SafeAreaProvider>

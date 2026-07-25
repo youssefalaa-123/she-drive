@@ -15,8 +15,8 @@
     "expo-clipboard": "~8.0.8",
     "expo-image-picker": "~17.0.11",
     "expo-location": "~19.0.8",
+    "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~2.2.0",
-    "firebase": "^11.9.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.76.5",
@@ -28,12 +28,18 @@
   },
   "scripts": {
     "start": "expo start",
+    "start:tunnel": "expo start --tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "private": true,
   "devDependencies": {
+    "@expo/ngrok": "^4.1.3",
+    "@playwright/test": "^1.61.1",
     "@types/react": "~19.1.10",
     "typescript": "~5.9.2"
   }

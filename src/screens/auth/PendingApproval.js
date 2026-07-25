@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../firebase/config';
 import { useTheme } from '../../context/SettingsContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PendingApproval() {
   const { colors, t } = useTheme();
+  const { signOut } = useAuth();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   return (
@@ -20,7 +20,7 @@ export default function PendingApproval() {
           <Text style={styles.infoItem}>{t('pendingStep2')}</Text>
           <Text style={styles.infoItem}>{t('pendingStep3')}</Text>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => signOut(auth)}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={signOut}>
           <Text style={styles.logoutText}>{t('signOut')}</Text>
         </TouchableOpacity>
       </View>

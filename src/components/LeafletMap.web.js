@@ -48,10 +48,27 @@ L.tileLayer('${TILE_URL}',{
 
 var markers={};
 var routeLayer=null;
+var walkLayer=null;
 var currentPos=null;
+var navMode=false;
 
 document.getElementById('recenterBtn').addEventListener('click',function(){
-  if(currentPos) map.setView([currentPos.lat,currentPos.lng],16);
+  navMode=!navMode;
+  var mapEl=document.getElementById('map');
+  var btn=document.getElementById('recenterBtn');
+  if(navMode){
+    if(currentPos) map.setView([currentPos.lat,currentPos.lng],18);
+    mapEl.style.transformOrigin='center 80%';
+    mapEl.style.transform='perspective(900px) rotateX(42deg) scale(1.55)';
+    mapEl.style.transition='transform 0.5s ease';
+    btn.textContent='🗺️';
+    btn.title='Exit navigation view';
+  } else {
+    if(currentPos) map.setView([currentPos.lat,currentPos.lng],16);
+    mapEl.style.transform='none';
+    btn.textContent='⊙';
+    btn.title='Re-center';
+  }
   parent.postMessage({mapId:MAP_ID,type:'RECENTER_PRESSED'},'*');
 });
 
@@ -90,6 +107,17 @@ window.addEventListener('message',function(e){
     case 'CLEAR_ROUTE':
       if(routeLayer){routeLayer.remove();routeLayer=null;}
       break;
+    case 'DRAW_WALK_ROUTE':
+      if(walkLayer){walkLayer.remove();walkLayer=null;}
+      if(m.geometry){
+        walkLayer=L.geoJSON(m.geometry,{
+          style:{color:'#3B82F6',weight:4,opacity:.85,dashArray:'8 6',lineJoin:'round',lineCap:'round'}
+        }).addTo(map);
+      }
+      break;
+    case 'CLEAR_WALK_ROUTE':
+      if(walkLayer){walkLayer.remove();walkLayer=null;}
+      break;
     case 'SET_VIEW':
       map.setView([m.lat,m.lng],m.zoom!==undefined?m.zoom:map.getZoom());
       break;
@@ -124,41 +152,57 @@ window.addEventListener('message',function(e){
 map.on('click',function(e){
   parent.postMessage({mapId:MAP_ID,type:'CLICK',lat:e.latlng.lat,lng:e.latlng.lng},'*');
 });
+parent.postMessage({mapId:MAP_ID,type:'MAP_READY'},'*');
 </script>
 </body>
 </html>`;
 
 const LeafletMap = forwardRef(({
-  center   = MAP_DEFAULTS.center,
-  zoom     = MAP_DEFAULTS.zoom,
+  center    = MAP_DEFAULTS.center,
+  zoom      = MAP_DEFAULTS.zoom,
   onMapClick,
-  height   = 240,
-  style    = {},
+  onRecenter,
+  height    = 240,
+  style     = {},
 }, ref) => {
-  const iframeRef    = useRef(null);
-  const mapId        = useRef(`m${++_idCounter}`).current;
-  const onClickRef   = useRef(onMapClick);
-  const srcRef       = useRef(null);
+  const iframeRef      = useRef(null);
+  const mapId          = useRef(`m${++_idCounter}`).current;
+  const onClickRef     = useRef(onMapClick);
+  const onRecenterRef  = useRef(onRecenter);
+  const srcRef         = useRef(null);
 
-  onClickRef.current = onMapClick;
+  onClickRef.current    = onMapClick;
+  onRecenterRef.current = onRecenter;
 
   if (!srcRef.current) {
     const html = buildHTML(mapId, center.lat, center.lng, zoom);
     srcRef.current = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
   }
 
+  const readyRef = useRef(false);
+  const queueRef = useRef([]);
+
   const send = (msg) => {
-    iframeRef.current?.contentWindow?.postMessage({ ...msg, mapId }, '*');
+    const full = { ...msg, mapId };
+    if (!readyRef.current) { queueRef.current.push(full); return; }
+    iframeRef.current?.contentWindow?.postMessage(full, '*');
   };
 
   // Listen for clicks and recenter presses from the iframe
   useEffect(() => {
     const handler = (e) => {
       if (e.data?.mapId !== mapId) return;
+      if (e.data?.type === 'MAP_READY') {
+        readyRef.current = true;
+        queueRef.current.splice(0).forEach(m => iframeRef.current?.contentWindow?.postMessage(m, '*'));
+        return;
+      }
       if (e.data?.type === 'CLICK') {
         onClickRef.current?.(e.data.lat, e.data.lng);
       }
-      if (e.data?.type === 'RECENTER_PRESSED') { /* no-op for now, just re-emit */ }
+      if (e.data?.type === 'RECENTER_PRESSED') {
+        onRecenterRef.current?.();
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
@@ -190,6 +234,7 @@ const LeafletMap = forwardRef(({
           distanceKm: Math.round((route.distance / 1000) * 10) / 10,
           durationMins: Math.ceil(route.duration / 60),
           steps,
+          coords: route.geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] })),
         });
       } catch (err) {
         console.warn('OSRM route error:', err);
@@ -197,6 +242,40 @@ const LeafletMap = forwardRef(({
     },
 
     clearRoute() { send({ type: 'CLEAR_ROUTE' }); },
+
+    // Walking route: passenger current position → pickup point.
+    // Uses OSRM foot profile; falls back to a straight-line GeoJSON if unavailable.
+    async showWalkRoute(fromLat, fromLng, toLat, toLng, onResult) {
+      const coords = `${fromLng},${fromLat};${toLng},${toLat}`;
+      let geometry = null;
+      let distKm   = null;
+      let durMins  = null;
+      try {
+        const res  = await fetch(
+          `https://router.project-osrm.org/route/v1/foot/${coords}?overview=full&geometries=geojson`,
+          { headers: { 'User-Agent': 'SheDriveApp/1.0' } }
+        );
+        const data = await res.json();
+        if (data.code === 'Ok' && data.routes?.length) {
+          geometry = data.routes[0].geometry;
+          distKm   = Math.round(data.routes[0].distance / 10) / 100;
+          durMins  = Math.ceil(data.routes[0].duration / 60);
+        }
+      } catch {}
+      if (!geometry) {
+        // Straight-line fallback — at least shows direction on the map
+        geometry = { type: 'LineString', coordinates: [[fromLng, fromLat], [toLng, toLat]] };
+        const R = 6371, toRad = d => d * Math.PI / 180;
+        const dLat = toRad(toLat - fromLat), dLng = toRad(toLng - fromLng);
+        const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(toRad(fromLat)) * Math.cos(toRad(toLat)) * Math.sin(dLng / 2) ** 2;
+        distKm = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 100) / 100;
+      }
+      send({ type: 'DRAW_WALK_ROUTE', geometry });
+      onResult?.({ distanceKm: distKm, durationMins: durMins });
+    },
+
+    clearWalkRoute() { send({ type: 'CLEAR_WALK_ROUTE' }); },
 
     setView(lat, lng, z) { send({ type: 'SET_VIEW', lat, lng, zoom: z }); },
 

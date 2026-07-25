@@ -1,26 +1,58 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { supabase } from '../../lib/supabase';
 import CardInputModal from '../../components/CardInputModal';
+import PhotoPicker from '../../components/PhotoPicker';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/SettingsContext';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { user, userProfile } = useAuth();
   const { colors, shadow, t } = useTheme();
   const styles = useMemo(() => makeStyles(colors, shadow), [colors, shadow]);
 
   const [cardModalVisible, setCardModalVisible] = useState(false);
+  const [completedTripCount, setCompletedTripCount] = useState(null);
+  const [savingPhoto, setSavingPhoto] = useState(false);
 
   const savedCards = userProfile?.savedCards || [];
 
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('rides')
+      .select('id', { count: 'exact', head: true })
+      .eq('passenger_id', user.id)
+      .eq('status', 'completed')
+      .then(({ count }) => {
+        if (count !== null) {
+          setCompletedTripCount(count);
+        }
+      });
+  }, [user?.id]);
+
+  const handlePhotoChange = async (url) => {
+    setSavingPhoto(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ photo_url: url })
+        .eq('id', user.id);
+      if (error) throw error;
+    } catch (err) {
+      Alert.alert('Error', 'Could not save photo. Please try again.');
+    } finally {
+      setSavingPhoto(false);
+    }
+  };
+
   const handleSaveCard = async (cardData) => {
-    await updateDoc(doc(db, 'users', user.uid), { savedCards: arrayUnion(cardData) });
+    const updated = [...savedCards, cardData];
+    await supabase.from('profiles').update({ saved_cards: updated }).eq('id', user.id);
   };
 
   const handleRemoveCard = (card) => {
@@ -29,7 +61,8 @@ export default function ProfileScreen() {
       {
         text: t('remove'), style: 'destructive', onPress: async () => {
           try {
-            await updateDoc(doc(db, 'users', user.uid), { savedCards: arrayRemove(card) });
+            const updated = savedCards.filter(c => c.id !== card.id);
+            await supabase.from('profiles').update({ saved_cards: updated }).eq('id', user.id);
           } catch (e) { Alert.alert(t('error'), e.message); }
         }
       },
@@ -37,7 +70,7 @@ export default function ProfileScreen() {
   };
 
   const badges = userProfile?.badges || 0;
-  const totalTrips = userProfile?.totalTrips || 0;
+  const totalTrips = completedTripCount ?? userProfile?.totalTrips ?? 0;
   const nextBadgeIn = 10 - (totalTrips % 10);
 
   return (
@@ -51,9 +84,13 @@ export default function ProfileScreen() {
       />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={{ fontSize: 40 }}>👩</Text>
-          </View>
+          <PhotoPicker
+            label="Profile Photo"
+            value={userProfile?.photoURL || ''}
+            onChange={handlePhotoChange}
+            storagePath="passengers/photos"
+            size={90}
+          />
           <Text style={styles.name}>{userProfile?.name || '—'}</Text>
           <Text style={styles.email}>{userProfile?.email || ''}</Text>
           <Text style={styles.phone}>{userProfile?.phone || ''}</Text>
@@ -116,6 +153,15 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity
+          style={styles.settingsRow}
+          onPress={() => navigation.navigate('Settings')}
+        >
+          <Ionicons name="settings-outline" size={20} color={colors.gray} style={{ marginRight: 12 }} />
+          <Text style={styles.settingsText}>{t('settings')}</Text>
+          <Ionicons name="chevron-forward-outline" size={18} color={colors.gray} />
+        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -159,5 +205,10 @@ function makeStyles(colors, shadow) {
     cardChipSub: { fontSize: 12, color: colors.gray, marginTop: 2 },
     addCardBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, marginTop: 4 },
     addCardText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
+    settingsRow: {
+      backgroundColor: colors.white, borderRadius: 20, padding: 16, marginTop: 0,
+      flexDirection: 'row', alignItems: 'center', ...shadow.md,
+    },
+    settingsText: { flex: 1, fontSize: 15, color: colors.dark, fontWeight: '600' },
   });
 }

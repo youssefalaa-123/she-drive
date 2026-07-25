@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../../context/SettingsContext';
+import SheDriveLogo from '../../components/SheDriveLogo';
 
 export default function RegisterScreen({ navigation }) {
   const { colors, shadow, t } = useTheme();
@@ -13,11 +14,7 @@ export default function RegisterScreen({ navigation }) {
       </TouchableOpacity>
 
       <View style={styles.logoWrap}>
-        <Image
-          source={require('../../../assets/logo.jpg')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <SheDriveLogo size={0.8} />
       </View>
 
       <Text style={styles.title}>{t('joinSheDrive')}</Text>
@@ -55,8 +52,7 @@ function makeStyles(colors, shadow) {
     container: { flexGrow: 1, backgroundColor: colors.primaryBg, padding: 24 },
     back: { marginBottom: 8, paddingTop: 8 },
     backText: { color: colors.primary, fontSize: 16, fontWeight: '600' },
-    logoWrap: { alignItems: 'center', marginBottom: 16 },
-    logo: { width: 130, height: 195 },
+    logoWrap: { alignItems: 'center', marginBottom: 20, marginTop: 8 },
     title: { fontSize: 26, fontWeight: '800', color: colors.dark, marginBottom: 6 },
     sub: { fontSize: 15, color: colors.gray, marginBottom: 24 },
     roleCard: {

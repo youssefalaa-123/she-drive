@@ -4,18 +4,18 @@ import {
   Alert, Modal, TextInput, ActivityIndicator, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { signOut } from 'firebase/auth';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../firebase/config';
+import { supabase } from '../lib/supabase';
 import { useTheme, useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
+import TermsContent from '../components/TermsContent';
+import { passengerTerms, driverTerms } from '../data/termsOfService';
 
 const APP_VERSION = '1.0.0';
 
 export default function SettingsScreen() {
   const { colors, shadow, t, isRTL } = useTheme();
   const { isDarkMode, setDarkMode, notifications, setNotifications, language, setLanguage } = useSettings();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
 
   const s = makeStyles(colors, shadow, isRTL);
 
@@ -29,13 +29,13 @@ export default function SettingsScreen() {
   const handleSignOut = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && window.confirm) {
       if (window.confirm(t('signOutMsg') || 'Are you sure you want to sign out?')) {
-        signOut(auth).catch(() => {});
+        signOut().catch(() => {});
       }
       return;
     }
     Alert.alert(t('signOutConfirm'), t('signOutMsg'), [
       { text: t('cancel'), style: 'cancel' },
-      { text: t('signOut'), style: 'destructive', onPress: () => signOut(auth).catch(() => {}) },
+      { text: t('signOut'), style: 'destructive', onPress: () => signOut().catch(() => {}) },
     ]);
   };
 
@@ -46,14 +46,14 @@ export default function SettingsScreen() {
     }
     setSending(true);
     try {
-      await addDoc(collection(db, 'feedback'), {
-        userId: user?.uid,
-        userName: userProfile?.name || 'Unknown',
+      const { error } = await supabase.from('feedback').insert({
+        user_id: user?.id,
+        user_name: userProfile?.name || 'Unknown',
         subject: subject.trim(),
         message: message.trim(),
         role: userProfile?.role || 'user',
-        createdAt: serverTimestamp(),
       });
+      if (error) throw error;
       setSubject('');
       setMessage('');
       setFeedbackVisible(false);
@@ -152,7 +152,7 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={s.policyText}>{t('termsOfServiceText')}</Text>
+              <TermsContent terms={userProfile?.role === 'driver' ? driverTerms : passengerTerms} />
               <View style={{ height: 32 }} />
             </ScrollView>
           </View>

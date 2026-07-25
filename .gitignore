@@ -46,6 +46,12 @@ yarn-error.*
 # Admin dashboard secrets — never commit real credentials
 admin/env.js
 
+# EAS build configuration — contains project IDs, may include secrets
+eas.json
+
+# Google Play service account key — private key, never commit
+google-play-service-account.json
+
 # AI tool configs (claude-flow, agentdb)
 .claude/
 .claude-flow/

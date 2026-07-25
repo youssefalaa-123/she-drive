@@ -10,6 +10,10 @@ service cloud.firestore {
       return request.auth.uid == uid;
     }
 
+    function isAdmin() {
+      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // ── User profiles ──────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isAuth();
@@ -17,62 +21,165 @@ service cloud.firestore {
       // Create own profile during onboarding only
       allow create: if isAuth() && isOwner(uid);
 
-      // Owner may update their own non-privileged fields.
-      // Blocked: role, approved, rejected (prevent self-elevation / self-approval).
-      // Blocked: wallet, rating, ratingCount (financial fields — server-side only).
+      // Owner may update own profile, including wallet (top-ups, withdrawals).
+      // Blocked: role, approved, rejected (prevent self-elevation).
+      // Blocked: rating, ratingCount — aggregated server-side by aggregateRating
+      //   Cloud Function on rides/{id}/ratings/{raterId} create events.
       allow update: if isAuth() && isOwner(uid)
         && !request.resource.data.diff(resource.data)
                .affectedKeys()
-               .hasAny(['role', 'approved', 'rejected', 'wallet', 'rating', 'ratingCount']);
+               .hasAny(['role', 'approved', 'rejected', 'rating', 'ratingCount']);
 
-      // Cross-user: wallet / rating / ratingCount only.
-      // Required for client-side settlement during migration to settle-ride Edge Function.
-      // Remove this rule once settle-ride Edge Function is deployed to production.
-      allow update: if isAuth()
-        && request.resource.data.diff(resource.data)
-               .affectedKeys().hasOnly(['wallet', 'rating', 'ratingCount']);
+      // Cross-user rating writes are intentionally removed.
+      // Rating aggregation is handled exclusively by the aggregateRating Cloud Function
+      // triggered by writes to rides/{rideId}/ratings/{raterId}.
 
       allow delete: if false;
 
       // Wallet history: owner reads; owner writes own entries only.
-      // Cross-user walletHistory writes from TripSummaryScreen will fail silently
-      // (fire-and-forget) and will be handled server-side by the settle-ride Edge Function.
       match /walletHistory/{docId} {
         allow read:   if isAuth() && isOwner(uid);
         allow create: if isAuth() && isOwner(uid);
       }
+
+      // Withdrawal requests: owner creates; admin reads for processing.
+      match /withdrawalRequests/{reqId} {
+        allow create: if isAuth() && isOwner(uid);
+        allow read:   if isAuth() && (isOwner(uid) || isAdmin());
+      }
+
+      // Private identity documents — PII subcollection (Finding #4 fix).
+      // nationalIdPhotoURL / licensePhotoURL live here after DriverOnboarding migration.
+      match /privateData/{docId} {
+        allow read:  if isAuth() && (isOwner(uid) || isAdmin());
+        allow write: if isAuth() && isOwner(uid);
+      }
     }
 
     // ── Rides ──────────────────────────────────────────────────────────────────
-    // Read:   scoped to the trip's passenger, the assigned driver, or any driver
-    //         viewing unassigned 'searching' rides.
-    // Create: passenger must embed their own uid as passengerId.
-    // Update: only the assigned passenger or driver; OR any driver claiming an
-    //         unassigned ride (driverId == null, status == 'searching').
     match /rides/{rideId} {
-      allow read: if isAuth() && (
+      allow read: if isAdmin() || (isAuth() && (
         resource.data.passengerId == request.auth.uid ||
         resource.data.driverId   == request.auth.uid ||
-        resource.data.status     == 'searching'
-      );
+        resource.data.status     == 'searching' ||
+        resource.data.status     == 'bidding'
+      ));
 
       allow create: if isAuth()
         && request.resource.data.passengerId == request.auth.uid;
 
-      allow update: if isAuth() && (
-        resource.data.passengerId == request.auth.uid ||
-        resource.data.driverId   == request.auth.uid ||
-        (resource.data.driverId == null && resource.data.status == 'searching')
-      );
+      // ── Passenger updates — phase-gated to prevent flag tampering ──────────
+      //
+      // Phase 1: bid acceptance — passenger selects a driver, sets driver
+      //   identity fields only. Status must be bidding → accepted.
+      allow update: if isAuth()
+        && resource.data.passengerId == request.auth.uid
+        && resource.data.status == 'bidding'
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'driverId', 'driverName', 'driverPhotoUrl',
+                       'driverRating', 'driverTotalTrips', 'driverCar',
+                       'driverPlate', 'driverPhone', 'eta', 'acceptedAt']);
+
+      // Phase 2: passenger-initiated cancel — only cancellation fields.
+      //   Blocked: passengerSettled, driverCancellationCredited, wallet-adjacent.
+      allow update: if isAuth()
+        && resource.data.passengerId == request.auth.uid
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'cancellationFee', 'cancellationReason',
+                       'cancelledBy', 'cancelledAt', 'feeWaived', 'feeWaivedReason']);
+
+      // Phase 3: settlement flag — monotonic false→true, completed ride only.
+      //   A passenger cannot pre-set passengerSettled before the ride ends.
+      allow update: if isAuth()
+        && resource.data.passengerId == request.auth.uid
+        && resource.data.status == 'completed'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['passengerSettled'])
+        && resource.data.passengerSettled == false
+        && request.resource.data.passengerSettled == true;
+
+      // Phase 4: post-ride rating — passenger records rating on the ride doc.
+      //   Driver profile aggregation is handled server-side.
+      allow update: if isAuth()
+        && resource.data.passengerId == request.auth.uid
+        && resource.data.status == 'completed'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['passengerRating', 'passengerComment', 'ratedAt']);
+
+      // Assigned driver can update for navigation, status, and settlement.
+      // Blocked: passenger identity, original route, original fare, booking metadata.
+      allow update: if isAuth() && resource.data.driverId == request.auth.uid
+        && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny([
+                 'passengerId', 'passengerName', 'passengerPhone', 'passengerPhotoUrl',
+                 'from', 'to', 'fromLat', 'fromLon', 'toLat', 'toLon',
+                 'isFirstRide', 'paymentMethod', 'cardFee', 'estimatedFare',
+                 'createdAt', 'pickupNote'
+               ]);
+
+      // Any authenticated driver may move a searching ride to bidding.
+      allow update: if isAuth()
+        && resource.data.status == 'searching'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'biddingStartedAt']);
+
+      // Bids subcollection: drivers place bids; passenger reads to pick one.
+      match /bids/{driverId} {
+        allow read: if isAuth() && (
+          driverId == request.auth.uid ||
+          get(/databases/$(database)/documents/rides/$(rideId)).data.passengerId == request.auth.uid
+        );
+        allow create: if isAuth() && driverId == request.auth.uid;
+        allow update: if isAuth() && (
+          driverId == request.auth.uid ||
+          get(/databases/$(database)/documents/rides/$(rideId)).data.passengerId == request.auth.uid
+        );
+      }
+
+      // Rating subcollection — write-once, verified passenger of completed ride only.
+      // The aggregateRating Cloud Function reads these and updates driver profile.
+      match /ratings/{raterId} {
+        allow create: if isAuth()
+          && raterId == request.auth.uid
+          && get(/databases/$(database)/documents/rides/$(rideId)).data.passengerId == request.auth.uid
+          && get(/databases/$(database)/documents/rides/$(rideId)).data.status == 'completed'
+          && request.resource.data.rating is number
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5;
+        allow update: if false;
+        allow delete: if false;
+        allow read: if isAuth() && (
+          raterId == request.auth.uid ||
+          get(/databases/$(database)/documents/rides/$(rideId)).data.driverId == request.auth.uid ||
+          isAdmin()
+        );
+      }
+    }
+
+    // ── Feedback ───────────────────────────────────────────────────────────────
+    match /feedback/{docId} {
+      allow read:   if isAdmin();
+      allow create: if isAuth();
+    }
+
+    // ── Phone index ────────────────────────────────────────────────────────────
+    // Client reads are disabled — phone→email lookup is handled by the
+    // lookupPhone Callable Cloud Function (Admin SDK, no rules bypass needed).
+    // Writes remain authenticated so DriverOnboarding and backfill can populate.
+    match /phoneIndex/{phone} {
+      allow read:  if false;
+      allow write: if isAuth();
     }
 
     // ── Admin wallet ───────────────────────────────────────────────────────────
-    // Read: any authenticated user (balance display in admin panel).
-    // Write: kept open during migration; set to `if false` once settle-ride
-    //        Edge Function is handling all settlement server-side.
+    // Read: any authenticated user (admin panel display).
+    // Write: DISABLED — credited exclusively by the commissionOnRideComplete
+    //   Cloud Function using Admin SDK (Finding #2 + Fix #3).
     match /wallets/admin {
       allow read:  if isAuth();
-      allow write: if isAuth();
+      allow write: if false;
     }
   }
 }
