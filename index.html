@@ -26,67 +26,36 @@
   <link rel="icon" href="/favicon.ico" />
   <meta name="google-site-verification" content="1Cp-smGSBeOc4LUp6a0c2dhmcoGJ3K3bHnPzTR75vrc" />
   <style>
-    #maintenance-fallback {
-      position: fixed; inset: 0; background: #FDF0F5;
-      display: flex; align-items: center; justify-content: center;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      z-index: 9999; padding: 24px;
-    }
-    #maintenance-fallback .mcard {
-      background: #fff; border-radius: 24px; padding: 40px 36px;
-      text-align: center; max-width: 460px; width: 100%;
-      box-shadow: 0 8px 40px rgba(194,24,91,0.12);
-    }
-    #maintenance-fallback .mlogo { font-size: 48px; }
-    #maintenance-fallback .mbrand { font-size: 22px; font-weight: 800; color: #C2185B; margin: 4px 0 28px; }
-    #maintenance-fallback .micon { font-size: 52px; margin-bottom: 20px; display: block; }
-    #maintenance-fallback .mar { font-size: 22px; font-weight: 800; color: #1A1A2E; margin-bottom: 10px; direction: rtl; }
-    #maintenance-fallback .mársub { font-size: 15px; color: #6B7280; line-height: 1.8; margin-bottom: 22px; direction: rtl; }
-    #maintenance-fallback .mdiv { width: 40px; height: 2px; background: #F3E5F5; border-radius: 2px; margin: 0 auto 22px; }
-    #maintenance-fallback .men { font-size: 17px; font-weight: 700; color: #1A1A2E; margin-bottom: 8px; }
-    #maintenance-fallback .mensub { font-size: 14px; color: #9CA3AF; line-height: 1.6; margin-bottom: 28px; }
-    #maintenance-fallback .mbtn {
-      display: inline-block; background: #C2185B; color: #fff;
-      font-size: 15px; font-weight: 700; padding: 14px 36px;
-      border-radius: 14px; cursor: pointer; border: none; margin-bottom: 28px;
-    }
-    #maintenance-fallback .mcontact { font-size: 12px; color: #9CA3AF; line-height: 1.8; }
+    #mf{position:fixed;inset:0;background:#FDF0F5;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;z-index:9999;padding:24px}
+    .mc{background:#fff;border-radius:24px;padding:40px 36px;text-align:center;max-width:460px;width:100%;box-shadow:0 8px 40px rgba(194,24,91,.12)}
+    .ml{font-size:48px}.mb{font-size:22px;font-weight:800;color:#C2185B;margin:4px 0 28px}.mi{font-size:52px;margin-bottom:20px;display:block}
+    .ma{font-size:22px;font-weight:800;color:#1A1A2E;margin-bottom:10px;direction:rtl}
+    .ms{font-size:15px;color:#6B7280;line-height:1.8;margin-bottom:22px;direction:rtl}
+    .md{width:40px;height:2px;background:#F3E5F5;border-radius:2px;margin:0 auto 22px}
+    .me{font-size:17px;font-weight:700;color:#1A1A2E;margin-bottom:8px}
+    .mk{font-size:14px;color:#9CA3AF;line-height:1.6;margin-bottom:28px}
+    .mbtn{display:inline-block;background:#C2185B;color:#fff;font-size:15px;font-weight:700;padding:14px 36px;border-radius:14px;cursor:pointer;border:none;margin-bottom:28px}
+    .mco{font-size:12px;color:#9CA3AF;line-height:1.8}
   </style>
 </head>
 
   <body>
-    <div id="maintenance-fallback">
-      <div class="mcard">
-        <div class="mlogo">🚗</div>
-        <div class="mbrand">She Drive</div>
-        <span class="micon">🔧</span>
-        <div class="mar">الموقع قيد الصيانة مؤقتاً</div>
-        <div class="mársub">نعمل على تحسين تجربتك.<br>يرجى العودة قريباً.</div>
-        <div class="mdiv"></div>
-        <div class="men">Website Under Maintenance</div>
-        <div class="mensub">We are working to improve your experience.<br>Please check back soon.</div>
-        <button class="mbtn" onclick="window.location.reload()">إعادة المحاولة &nbsp;/&nbsp; Try Again</button>
-        <div class="mcontact">
-          shedrive.eg.app@gmail.com<br>
-          01159413495 &nbsp;•&nbsp; 01148813699
-        </div>
+    <div id="mf">
+      <div class="mc">
+        <div class="ml">🚗</div>
+        <div class="mb">She Drive</div>
+        <span class="mi">🔧</span>
+        <div class="ma">الموقع قيد الصيانة مؤقتاً</div>
+        <div class="ms">نعمل على تحسين تجربتك.<br>يرجى العودة قريباً.</div>
+        <div class="md"></div>
+        <div class="me">Website Under Maintenance</div>
+        <div class="mk">We are working to improve your experience.<br>Please check back soon.</div>
+        <button class="mbtn" onclick="location.reload()">إعادة المحاولة &nbsp;/&nbsp; Try Again</button>
+        <div class="mco">shedrive.eg.app@gmail.com<br>01159413495 &nbsp;•&nbsp; 01148813699</div>
       </div>
     </div>
-    <!-- The root element for your Expo app — replaces the maintenance overlay when JS loads. -->
+    <!-- The root element for your Expo app. React removes the overlay above on mount. -->
     <div id="root"></div>
-    <script>
-      (function(){
-        var root = document.getElementById('root');
-        var obs = new MutationObserver(function(_,o){
-          if (root.childNodes.length > 0) {
-            var f = document.getElementById('maintenance-fallback');
-            if (f) f.remove();
-            o.disconnect();
-          }
-        });
-        obs.observe(root, {childList: true});
-      })();
-    </script>
-  <script src="/_expo/static/js/web/__expo-metro-runtime-8816af41e8df40052ed39594c60e358c.js" defer></script><script src="/_expo/static/js/web/__common-0760c86006703a167439ad1712de16ee.js" defer></script><script src="/_expo/static/js/web/index-a91fae4023344622dea9237daaa9e7da.js" defer></script>
+  <script src="/_expo/static/js/web/__expo-metro-runtime-8816af41e8df40052ed39594c60e358c.js" defer></script><script src="/_expo/static/js/web/__common-0760c86006703a167439ad1712de16ee.js" defer></script><script src="/_expo/static/js/web/index-b3f89bce5b89b25ea9a18aec0fb80d1f.js" defer></script>
 </body>
 </html>
