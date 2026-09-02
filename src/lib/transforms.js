@@ -27,6 +27,8 @@ export function toProfile(row) {
     carPhotoURL:  row.car_photo_url,
     nationalIdPhotoURL: row.national_id_photo_url,
     licensePhotoURL:    row.license_photo_url,
+    carLicensePhotoURL: row.car_license_photo_url,
+    carLicenseApproved: row.car_license_approved ?? false,
     licenseNumber: row.license_number,
     nationalId:   row.national_id,
     carModel:     row.car_model,
@@ -38,6 +40,7 @@ export function toProfile(row) {
     currentStreak: row.current_streak ?? 0,
     longestStreak: row.longest_streak ?? 0,
     lastRideDate:  row.last_ride_date,
+    lastTripCompletedAt: ts(row.last_trip_completed_at),
     createdAt:     ts(row.created_at),
   };
 }
