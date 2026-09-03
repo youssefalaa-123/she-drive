@@ -158,7 +158,7 @@ function Navigator() {
 
 export default function RootNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer storageKey={null}>
       <Suspense fallback={<Spinner />}>
         <Navigator />
       </Suspense>

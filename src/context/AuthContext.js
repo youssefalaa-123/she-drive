@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
     try {
       const { data: row, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id,name,email,phone,role,wallet,total_trips,rating,rating_count,approved,rejected,is_online,current_lat,current_lng,photo_url,car_photo_url,national_id_photo_url,license_photo_url,car_license_photo_url,car_license_approved,license_number,national_id,car_model,car_color,plate_number,saved_cards,payout_methods,badges,current_streak,longest_streak,last_ride_date,last_trip_completed_at,created_at')
         .eq('id', supabaseUser.id)
         .single();
 
@@ -136,7 +136,7 @@ export function AuthProvider({ children }) {
     const currentUser = await supabase.auth.getUser();
     const uid = currentUser?.data?.user?.id;
     if (!uid) return;
-    const { data: row } = await supabase.from('profiles').select('*').eq('id', uid).single();
+    const { data: row } = await supabase.from('profiles').select('id,name,email,phone,role,wallet,total_trips,rating,rating_count,approved,rejected,is_online,current_lat,current_lng,photo_url,car_photo_url,national_id_photo_url,license_photo_url,car_license_photo_url,car_license_approved,license_number,national_id,car_model,car_color,plate_number,saved_cards,payout_methods,badges,current_streak,longest_streak,last_ride_date,last_trip_completed_at,created_at').eq('id', uid).single();
     if (row) setUserProfile(toProfile(row));
   };
 
