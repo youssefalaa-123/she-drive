@@ -132,8 +132,16 @@ export function AuthProvider({ children }) {
   const signOut = () => supabase.auth.signOut();
   const exitRecovery = () => setRecoveryMode(false);
 
+  const refreshProfile = async () => {
+    const currentUser = await supabase.auth.getUser();
+    const uid = currentUser?.data?.user?.id;
+    if (!uid) return;
+    const { data: row } = await supabase.from('profiles').select('*').eq('id', uid).single();
+    if (row) setUserProfile(toProfile(row));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, signOut, recoveryMode, exitRecovery }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, signOut, recoveryMode, exitRecovery, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

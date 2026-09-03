@@ -10,11 +10,12 @@ import PhotoPicker from '../../components/PhotoPicker';
 
 export default function CarLicenseUploadScreen() {
   const { colors, shadow, t } = useTheme();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const styles = useMemo(() => makeStyles(colors, shadow), [colors, shadow]);
 
   const [photoUrl, setPhotoUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
@@ -30,13 +31,29 @@ export default function CarLicenseUploadScreen() {
         .update({ car_license_photo_url: photoUrl })
         .eq('id', user.uid);
       if (updateErr) throw updateErr;
-      // AuthContext realtime subscription will pick up the change and re-route automatically
+      setSubmitted(true);
+      // Force-reload the profile so the Navigator re-evaluates the gate immediately
+      await refreshProfile();
     } catch (err) {
       setError(err.message || 'Upload failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  if (submitted) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.primaryBg, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+        <Text style={{ fontSize: 64, marginBottom: 20 }}>✅</Text>
+        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.dark, textAlign: 'center', marginBottom: 12 }}>
+          {t('carLicensePendingTitle')}
+        </Text>
+        <Text style={{ fontSize: 15, color: colors.gray, textAlign: 'center', lineHeight: 22 }}>
+          {t('carLicensePendingBody')}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
