@@ -3,6 +3,7 @@ import { View, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../context/AuthContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { supabase } from '../lib/supabase';
 import { colors } from '../theme';
 import AuthStack from './AuthStack';
@@ -68,6 +69,7 @@ const GRACE_MS = 15 * 60 * 1000; // 15 minutes
 
 function Navigator() {
   const { user, userProfile, loading, recoveryMode } = useAuth();
+  usePushNotifications(userProfile);
 
   // Driver uploaded car license but admin hasn't approved it yet
   const pendingCarLicenseApproval =
