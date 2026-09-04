@@ -16,7 +16,15 @@ self.addEventListener('push', (event) => {
     data: { url: data.url || SITE_URL },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      // Tell any open She Drive tabs to play the distinctive sound
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        clientList.forEach((client) => client.postMessage({ type: 'RIDE_REQUEST_SOUND' }));
+      }),
+    ])
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
